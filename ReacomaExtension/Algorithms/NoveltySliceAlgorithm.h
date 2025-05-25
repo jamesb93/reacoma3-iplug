@@ -6,6 +6,24 @@
 
 class NoveltySliceAlgorithm : public IAlgorithm { // Inherit from IAlgorithm
 public:
+    // Enum for algorithm-specific parameters
+    enum Params {
+        kThreshold = 0,
+        kFilterSize,
+        kAlgorithm,
+        kNumParams // Keep this as the last element to count parameters
+    };
+
+    // Enum for algorithm options (if specific to this algorithm's parameters)
+    enum EAlgorithmOptions {
+        kSpectrum = 0,
+        kMFCC,
+        kChroma,
+        kPitch,
+        kLoudness,
+        kNumAlgorithmOptions // Keep this as the last element
+    };
+
     // Constructor now takes a ReacomaExtension pointer and passes it to the base
     NoveltySliceAlgorithm(ReacomaExtension* apiProvider);
     // Mark destructor as override

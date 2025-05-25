@@ -1,7 +1,12 @@
+// ReacomaExtension.h
 #pragma once
 
 #include "ReaperExt_include_in_plug_hdr.h"
 #include "reaper_plugin.h"
+#include <memory> // For std::unique_ptr
+
+// Forward declare IAlgorithm
+class IAlgorithm;
 
 using namespace iplug;
 using namespace igraphics;
@@ -14,7 +19,6 @@ public:
         
     ReacomaExtension(reaper_plugin_info_t* pRec);
     void OnUIClose() override;
-    
     void Process(Mode mode, bool force);
 
 private:
@@ -35,5 +39,6 @@ private:
     
     std::vector<MediaItem*> mSelectedItems;
     bool mIsProcessingAsync = false;
-};
 
+    std::unique_ptr<IAlgorithm> mAlgorithm; // Algorithm instance
+};
