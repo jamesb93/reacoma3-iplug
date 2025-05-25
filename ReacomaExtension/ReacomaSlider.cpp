@@ -203,7 +203,7 @@ void ReacomaSlider::OnMouseDrag(float x, float y, float dX, float dY, const IMou
              mCurrentSliderHandleColor = mDragHandleColor;
         }
         UpdateValueFromPos(x, y); // This calls SetValue which calls SetDirty(true)
-        SetDirty(false);          // Explicitly ask for redraw for this drag step
+        SetDirty(true);          // Explicitly ask for redraw for this drag step
     }
 }
 
