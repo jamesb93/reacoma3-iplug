@@ -89,7 +89,6 @@ ReaperExtBase(pRec)
         const IRECT bounds = pGraphics->GetBounds(); // Full plugin window area
         const IColor swissBackgroundColor = COLOR_WHITE;
 
-        // Background panel setup (this is fine)
         if (pGraphics->NControls()) {
             IControl* pBG = pGraphics->GetBackgroundControl();
             if(pBG) {
@@ -101,13 +100,10 @@ ReaperExtBase(pRec)
         pGraphics->LoadFont("IBMPlexSans", (void*) IBMPLEXSANS, IBMPLEXSANS_length);
         pGraphics->AttachPanelBackground(swissBackgroundColor);
 
-        // --- Layout Constants ---
-        // These are your primary controls for overall padding and spacing
         float globalFramePadding = 20.f;  // Padding from all edges of the plugin window
         float topContentMargin = 10.f;    // Additional margin inside the top padded edge
         float bottomContentMargin = 20.f; // Space reserved at the bottom, inside the padded area
 
-        // Spacing constants for between elements
         float sliderHeight = 10.f;
         float sliderRowCellHeight = sliderHeight + 0.f; // Includes space for potential labels above/below
         float spaceBetweenSlidersVertically = 0.f;
@@ -218,7 +214,6 @@ void ReacomaExtension::Process(Mode mode, bool force)
     MediaItem* item = GetSelectedMediaItem(0, 0);
 //    auto mContext = new fluid::client::FluidContext();
 //    auto mAllocator = new fluid::data::FluidDefaultAllocator();
-//    auto alg = new NoveltySliceAlgorithm(this);
     auto alg = std::make_unique<NoveltySliceAlgorithm>(this);
     alg->ProcessItem(item);
 //    return;
