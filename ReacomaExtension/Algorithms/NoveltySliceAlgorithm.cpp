@@ -1,34 +1,37 @@
 // NoveltySliceAlgorithm.cpp
-#include "NoveltySliceAlgorithm.h"
-#include "ReacomaExtension.h" // Include the full definition of ReacomaExtension
+#include "NoveltySliceAlgorithm.h" // Includes IAlgorithm.h implicitly
+#include "ReacomaExtension.h"      // Include the full definition of ReacomaExtension
 #include "reaper_plugin_functions.h"
+
 
 #include "../../dependencies/flucoma-core/include/flucoma/clients/rt/NoveltySliceClient.hpp"
 #include "../../dependencies/flucoma-core/include/flucoma/clients/common/FluidContext.hpp"
-#include "../VectorBufferAdaptor.h" // Make sure this path is correct
+#include "../VectorBufferAdaptor.h" // Assuming this is still needed
 
+// Define the namespace aliases here, as they are specific to this implementation
 using namespace fluid;
 using namespace client;
 
+// Define the Impl struct for this concrete class
 struct NoveltySliceAlgorithm::Impl {
     FluidContext mContext;
     NRTThreadingNoveltySliceClient::ParamSetType mParams;
     NRTThreadingNoveltySliceClient mClient;
-    ReacomaExtension* mApiProvider; // Changed to ReacomaExtension*
 
-    Impl(ReacomaExtension* apiProvider) : // Changed
+    Impl() : // No longer needs apiProvider in its constructor
         mContext{},
         mParams{NRTThreadingNoveltySliceClient::getParameterDescriptors(), FluidDefaultAllocator()},
-        mClient{mParams, mContext},
-        mApiProvider(apiProvider) // Changed
+        mClient{mParams, mContext}
     {
-        // Any further initialization
+        // Any further initialization specific to Flucoma client
     }
 
-    bool processItemImpl(MediaItem* item) {
-        if (!item || !mApiProvider) return false; // Check if pointer is valid
+    void registerParametersImpl(ReacomaExtension* apiProvider) {
+    }
 
-        // Use the ReacomaExtension pointer to call API functions
+    bool processItemImpl(MediaItem* item, ReacomaExtension* apiProvider) {
+        if (!item || !apiProvider) return false;
+
         MediaItem_Take* take = GetActiveTake(item);
         if (!take) return false;
 
@@ -40,14 +43,13 @@ struct NoveltySliceAlgorithm::Impl {
         double itemLength = GetMediaItemInfo_Value(item, "D_LENGTH");
         double playrate = GetMediaItemTakeInfo_Value(take, "D_PLAYRATE");
         double takeOffset = GetMediaItemTakeInfo_Value(take, "D_STARTOFFS");
-    
+
         int outSize = sampleRate * std::min(itemLength * playrate, source->GetLength() - takeOffset);
-    
+
         std::vector<double> output;
         output.resize(outSize);
-    
+
         PCM_source_transfer_t transfer;
-    
         transfer.time_s = takeOffset;
         transfer.samplerate = sampleRate;
         transfer.nch = 1;
@@ -58,56 +60,56 @@ struct NoveltySliceAlgorithm::Impl {
         transfer.approximate_playback_latency = 0.0;
         transfer.absolute_time_s = 0.0;
         transfer.force_bpm = 0.0;
-    
+
         if (numChannels == 1) {
             source->GetSamples(&transfer);
         }
-        // Setup parameters
+
         std::vector<float> output_float(output.size());
         std::transform(output.begin(), output.end(), output_float.begin(),
         [](double d) { return static_cast<float>(d); });
         auto inputBuffer = InputBufferT::type(new fluid::VectorBufferAdaptor(output_float, numChannels, outSize, sampleRate));
-    
+
         int estimatedSlices = static_cast<int>(output.size() / 1024);
         auto outBuffer = std::make_shared<MemoryBufferAdaptor>(1, estimatedSlices, sampleRate);
         auto outputBuffer = BufferT::type(outBuffer);
-    
-        auto threshold = mApiProvider->GetParam(0)->Value();
-        auto filtersize = mApiProvider->GetParam(1)->Value();
-        auto algorithm = mApiProvider->GetParam(2)->Value();
-        
-        
+
+        // Get parameters from the API provider via the base class pointer
+        auto threshold = apiProvider->GetParam(0)->Value();
+        auto filtersize = apiProvider->GetParam(1)->Value();
+        auto algorithm = apiProvider->GetParam(2)->Value();
+
         mParams.template set<0>(std::move(inputBuffer), nullptr);  // source buffer
-        mParams.template set<1>(LongT::type(0), nullptr);         // startFrame
-        mParams.template set<2>(LongT::type(-1), nullptr);        // numFrames (-1 = all)
-        mParams.template set<3>(LongT::type(0), nullptr);         // startChan
-        mParams.template set<4>(LongT::type(-1), nullptr);        // numChans (-1 = all)
+        mParams.template set<1>(LongT::type(0), nullptr);           // startFrame
+        mParams.template set<2>(LongT::type(-1), nullptr);          // numFrames (-1 = all)
+        mParams.template set<3>(LongT::type(0), nullptr);           // startChan
+        mParams.template set<4>(LongT::type(-1), nullptr);          // numChans (-1 = all)
         mParams.template set<5>(std::move(outputBuffer), nullptr); // indices buffer
-        mParams.template set<6>(LongT::type(algorithm), nullptr);       // algorithm
+        mParams.template set<6>(LongT::type(algorithm), nullptr);   // algorithm
         mParams.template set<7>(LongRuntimeMaxParam(3, 3), nullptr); // kernelSize
         mParams.template set<8>(FloatT::type(threshold), nullptr); // threshold
-        mParams.template set<9>(LongRuntimeMaxParam(3, 3), nullptr); // filterSize
-        mParams.template set<10>(LongT::type(2), nullptr);   // minSliceLength
+        mParams.template set<9>(LongRuntimeMaxParam(filtersize, filtersize), nullptr); // filterSize
+        mParams.template set<10>(LongT::type(2), nullptr);          // minSliceLength
         mParams.template set<11>(fluid::client::FFTParams(1024, -1, -1), nullptr); // hopSize
-    
+
         mClient = NRTThreadingNoveltySliceClient(mParams, mContext);
         mClient.setSynchronous(true);
         mClient.enqueue(mParams);
         Result result = mClient.process();
-    
+
         BufferAdaptor::ReadAccess reader(outputBuffer.get());
         auto view = reader.samps(0);
-    
+
         Undo_BeginBlock2(0);
-    
+
         int markerCount = GetNumTakeMarkers(take);
         for (int i = markerCount - 1; i >= 0; i--) {
             DeleteTakeMarker(take, i);
         }
-    
+
         int numMarkers = 0;
         const char* markerLabel = "";
-    
+
         for (fluid::index i = 0; i < view.size(); i++) {
             if (view(i) > 0) {
                 double markerTime = view(i) / sampleRate / playrate;
@@ -115,24 +117,32 @@ struct NoveltySliceAlgorithm::Impl {
                 numMarkers++;
             }
         }
-    
+
         UpdateTimeline();
         Undo_EndBlock2(0, "reacoma", -1);
-    
-        
+
         return true;
     }
 };
 
-NoveltySliceAlgorithm::NoveltySliceAlgorithm(ReacomaExtension* apiProvider) // Changed
-    : mImpl(std::make_unique<Impl>(apiProvider)) {} // Changed
+// Implement constructor for NoveltySliceAlgorithm
+NoveltySliceAlgorithm::NoveltySliceAlgorithm(ReacomaExtension* apiProvider)
+    : IAlgorithm(apiProvider), // Call base class constructor
+      mImpl(std::make_unique<Impl>()) {} // Initialize Impl specific to this class
 
 NoveltySliceAlgorithm::~NoveltySliceAlgorithm() = default;
 
+// Implement the pure virtual functions from IAlgorithm
 bool NoveltySliceAlgorithm::ProcessItem(MediaItem* item) {
-    return mImpl->processItemImpl(item);
+    // Pass mApiProvider from the base class to the Impl's method
+    return mImpl->processItemImpl(item, mApiProvider);
 }
 
 const char* NoveltySliceAlgorithm::GetName() const {
-    return "NoveltySlice";
+    return "Novelty Slice Algorithm"; // Specific name for this implementation
+}
+
+void NoveltySliceAlgorithm::RegisterParameters() {
+    // Pass mApiProvider from the base class to the Impl's method
+    return mImpl->registerParametersImpl(mApiProvider);
 }
