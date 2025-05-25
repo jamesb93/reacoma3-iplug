@@ -4,8 +4,11 @@
 #include "IControls.h"
 #include "ReacomaSlider.h"
 #include "ReacomaButton.h"
-#include "ReacomaDropdown.h"
+#include "ReacomaSegmented.h"
 #include "Algorithms/NoveltySliceAlgorithm.h"
+//#include "../../dependencies/flucoma-core/include/flucoma/clients/rt/NoveltySliceClient.hpp"
+//#include "../../dependencies/flucoma-core/include/flucoma/clients/common/FluidContext.hpp"
+//#include "../../dependencies/flucoma-core/include/flucoma/data/FluidMemory.hpp"
 
 
 enum EAlgorithmOptions {
@@ -15,10 +18,6 @@ enum EAlgorithmOptions {
     kPitch,
     kLoudness,
     kNumAlgorithmOptions
-};
-
-enum UITags
-{
 };
 
 enum Params
@@ -40,7 +39,6 @@ struct ProcessAction
 
 ReacomaExtension::ReacomaExtension(reaper_plugin_info_t* pRec) : 
 ReaperExtBase(pRec)
-
 {
     for (int i = 0; i < kNumParams; i++) {
         AddParam();
@@ -218,9 +216,12 @@ void ReacomaExtension::OnUIClose()
 void ReacomaExtension::Process(Mode mode, bool force)
 {
     MediaItem* item = GetSelectedMediaItem(0, 0);
-    auto alg = new NoveltySliceAlgorithm();
+//    auto mContext = new fluid::client::FluidContext();
+//    auto mAllocator = new fluid::data::FluidDefaultAllocator();
+//    auto alg = new NoveltySliceAlgorithm(this);
+    auto alg = std::make_unique<NoveltySliceAlgorithm>(this);
     alg->ProcessItem(item);
-    return;
+//    return;
     // auto alg = new NoveltySliceAlgorithm();
     // alg->ProcessItem(item);
     // return;
