@@ -1,6 +1,3 @@
-[submodule "dependencies/HISSTools_Library"]
-	path = dependencies/HISSTools_Library
-	url = https://github.com/AlexHarker/HISSTools_Library
 [submodule "dependencies/iPlug2"]
 	path = dependencies/iPlug2
 	url = https://github.com/iPlug2/iPlug2
