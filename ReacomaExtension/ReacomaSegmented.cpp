@@ -1,5 +1,5 @@
 // ReacomaSegmented.cpp
-#include "ReacomaDropdown.h"
+#include "ReacomaSegmented.h"
 
 ReacomaSegmented::ReacomaSegmented(const IRECT& bounds, int paramIdx, const std::vector<std::string>& segmentLabels,
     const IText& textStyle, const IColor& activeColor, const IColor& inactiveColor)
