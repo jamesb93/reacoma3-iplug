@@ -14,7 +14,6 @@ ReacomaSegmented::ReacomaSegmented(const IRECT& bounds, int paramIdx, const std:
     {
         mSegmentRects.clear();
         if (mSegmentLabels.empty()) return;
-        float segmentWidth = mRECT.W() / mSegmentLabels.size();
         for (size_t i = 0; i < mSegmentLabels.size(); ++i)
         {
             mSegmentRects.push_back(mRECT.SubRectHorizontal(mSegmentLabels.size(), i));
@@ -32,31 +31,26 @@ ReacomaSegmented::ReacomaSegmented(const IRECT& bounds, int paramIdx, const std:
             IColor fillColor = (i == currentIdx) ? mActiveColor : mInactiveColor;
             
             if (mSegmentLabels.size() == 1) {
+                // Single segment keeps its original rounded rectangle drawing
                 g.FillRoundRect(fillColor, segmentRect, mCornerRadius);
                 g.DrawRoundRect(mBorderColor, segmentRect, mCornerRadius);
-            } else if (i == 0) { // First segment
-                // Fill the main rectangle part, stopping before the left rounded cap begins
-                if (segmentRect.L + mCornerRadius < segmentRect.R) { // Ensure there's a rectangle to draw
-                    g.FillRect(fillColor, IRECT(segmentRect.L + mCornerRadius, segmentRect.T, segmentRect.R, segmentRect.B));
-                }
-                g.FillCircle(fillColor, segmentRect.L + mCornerRadius, segmentRect.MH(), mCornerRadius); // Left round part
+            } else if (i == 0) { // First segment (now rectangular)
+                g.FillRect(fillColor, segmentRect); // Fill the entire segment
                 
-                // Draw Borders for the first segment
-                g.DrawArc(mBorderColor, segmentRect.L + mCornerRadius, segmentRect.MH(), mCornerRadius, 90.f, 270.f); // Left round border
-                g.DrawLine(mBorderColor, segmentRect.L + mCornerRadius, segmentRect.T, segmentRect.R, segmentRect.T); // Top border
-                g.DrawLine(mBorderColor, segmentRect.L + mCornerRadius, segmentRect.B, segmentRect.R, segmentRect.B); // Bottom border
-            } else if (i == mSegmentLabels.size() - 1) { // Last segment
-                // Fill the main rectangle part, starting after the right rounded cap begins
-                if (segmentRect.L < segmentRect.R - mCornerRadius) { // Ensure there's a rectangle to draw
-                    g.FillRect(fillColor, IRECT(segmentRect.L, segmentRect.T, segmentRect.R - mCornerRadius, segmentRect.B));
-                }
-                g.FillCircle(fillColor, segmentRect.R - mCornerRadius, segmentRect.MH(), mCornerRadius); // Right round part
-                
-                // Draw Borders for the last segment
-                g.DrawArc(mBorderColor, segmentRect.R - mCornerRadius, segmentRect.MH(), mCornerRadius, -90.f, 90.f); // Right round border
-                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.T, segmentRect.R - mCornerRadius, segmentRect.T); // Top border
-                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.B, segmentRect.R - mCornerRadius, segmentRect.B); // Bottom border
-            } else { // Middle segments
+                // Draw Borders for the first segment (rectangular)
+                // g.DrawArc(mBorderColor, segmentRect.L + mCornerRadius, segmentRect.MH(), mCornerRadius, 90.f, 270.f); // Left round border - REMOVED
+                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.T, segmentRect.R, segmentRect.T); // Top border (full width)
+                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.B, segmentRect.R, segmentRect.B); // Bottom border (full width)
+                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.T, segmentRect.L, segmentRect.B); // Left border
+            } else if (i == mSegmentLabels.size() - 1) { // Last segment (now rectangular)
+                g.FillRect(fillColor, segmentRect); // Fill the entire segment
+
+                // Draw Borders for the last segment (rectangular)
+                // g.DrawArc(mBorderColor, segmentRect.R - mCornerRadius, segmentRect.MH(), mCornerRadius, -90.f, 90.f); // Right round border - REMOVED
+                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.T, segmentRect.R, segmentRect.T); // Top border (full width)
+                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.B, segmentRect.R, segmentRect.B); // Bottom border (full width)
+                g.DrawLine(mBorderColor, segmentRect.R, segmentRect.T, segmentRect.R, segmentRect.B); // Right border
+            } else { // Middle segments (already rectangular)
                 g.FillRect(fillColor, segmentRect);
                 // Draw top and bottom borders for middle segments
                 g.DrawLine(mBorderColor, segmentRect.L, segmentRect.T, segmentRect.R, segmentRect.T); // Top border
@@ -78,9 +72,6 @@ ReacomaSegmented::ReacomaSegmented(const IRECT& bounds, int paramIdx, const std:
         int clickedSegment = GetSegmentForPos(x, y);
         if (clickedSegment != -1 && GetParam())
         {
-            // Normalize: (double)clickedSegment / (double)(numSegments - 1)
-            // numSegments is mSegmentLabels.size()
-            // maxIndex is mSegmentLabels.size() - 1 which is GetParam()->GetMax()
             if (mSegmentLabels.size() > 1) {
                 SetValue((double)clickedSegment / (double)(mSegmentLabels.size() - 1));
             } else { // Single segment, always normalized to 0
