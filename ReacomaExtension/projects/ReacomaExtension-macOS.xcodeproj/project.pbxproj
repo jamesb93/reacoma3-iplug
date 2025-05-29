@@ -12,6 +12,7 @@
 		49CE7DED2DE1806B00F412D8 /* ReacomaButton.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49CE7DEC2DE1806B00F412D8 /* ReacomaButton.cpp */; };
 		49CE7DF02DE1A62300F412D8 /* ibmplexsans.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49CE7DEF2DE1A62300F412D8 /* ibmplexsans.cpp */; };
 		49CE7DF32DE213D400F412D8 /* ReacomaSegmented.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49CE7DF22DE213D400F412D8 /* ReacomaSegmented.cpp */; };
+		49CE7E1C2DE36F7100F412D8 /* ibmplexmono.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49CE7E1B2DE36F7100F412D8 /* ibmplexmono.cpp */; };
 		4F56E31B227F43A400F3E839 /* IGraphicsCoreText.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4F56E319227F43A400F3E839 /* IGraphicsCoreText.mm */; };
 		4F56E325227F9C3200F3E839 /* IGraphicsNanoVG_src.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FBB8C2521EA55BD00C1EF1B /* IGraphicsNanoVG_src.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		4F56E32A227FA3C400F3E839 /* IPlugTimer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4F56E328227FA3C400F3E839 /* IPlugTimer.cpp */; };
@@ -42,6 +43,8 @@
 		49CE7DEF2DE1A62300F412D8 /* ibmplexsans.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ibmplexsans.cpp; path = ../resources/ibmplexsans.cpp; sourceTree = SOURCE_ROOT; };
 		49CE7DF12DE213D400F412D8 /* ReacomaSegmented.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReacomaSegmented.h; path = ../ReacomaSegmented.h; sourceTree = SOURCE_ROOT; };
 		49CE7DF22DE213D400F412D8 /* ReacomaSegmented.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ReacomaSegmented.cpp; path = ../ReacomaSegmented.cpp; sourceTree = SOURCE_ROOT; };
+		49CE7E1A2DE36F7100F412D8 /* ibmplexmono.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = ibmplexmono.hpp; path = ../resources/ibmplexmono.hpp; sourceTree = SOURCE_ROOT; };
+		49CE7E1B2DE36F7100F412D8 /* ibmplexmono.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ibmplexmono.cpp; path = ../resources/ibmplexmono.cpp; sourceTree = SOURCE_ROOT; };
 		4F1F1BE9135B1F60003A5BB2 /* wdlendian.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = wdlendian.h; path = ../../dependencies/iPlug2/WDL/wdlendian.h; sourceTree = SOURCE_ROOT; };
 		4F3862FF2014BCC70009F402 /* scripts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = scripts; path = ../scripts; sourceTree = "<group>"; };
 		4F3D2B4520212D4E00842FF4 /* wdl_base64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = wdl_base64.h; sourceTree = "<group>"; };
@@ -212,6 +215,8 @@
 		089C167CFE841241C02AAC07 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				49CE7E1A2DE36F7100F412D8 /* ibmplexmono.hpp */,
+				49CE7E1B2DE36F7100F412D8 /* ibmplexmono.cpp */,
 				49CE7DEE2DE1A62300F412D8 /* ibmplexsans.hpp */,
 				49CE7DEF2DE1A62300F412D8 /* ibmplexsans.cpp */,
 				4F7D28BB2AF2913A0033871E /* roboto.cpp */,
@@ -520,6 +525,7 @@
 				4FBB8C8821EA56C600C1EF1B /* IPlugPaths.cpp in Sources */,
 				4FBB8C7421EA55BD00C1EF1B /* IGraphicsMac.mm in Sources */,
 				4FBB8C7521EA55BD00C1EF1B /* IGraphicsMac_view.mm in Sources */,
+				49CE7E1C2DE36F7100F412D8 /* ibmplexmono.cpp in Sources */,
 				4F56E31B227F43A400F3E839 /* IGraphicsCoreText.mm in Sources */,
 				4FBB8C7F21EA55BD00C1EF1B /* IControl.cpp in Sources */,
 			);
