@@ -4,8 +4,8 @@
 #include "IGraphicsConstants.h" // For colors like COLOR_GRAY, etc.
 #include "IPlugUtilities.h"   // For Clip, Lerp
 
-#include <cmath>     // For std::fabs
-#include <algorithm> // For std::max, std::min
+#include <cmath>
+#include <algorithm>
 
 namespace iplug {
 namespace igraphics {
@@ -25,12 +25,11 @@ ReacomaSlider::ReacomaSlider(const IRECT& bounds, int paramIdx)
       mMouseOverHandleColor(SWISS_HANDLE_COLOR_HOVER_DEFAULT),
       mDragHandleColor(SWISS_HANDLE_COLOR_DRAG_DEFAULT),
       mBaseHandleThickness(10.f),
-      mTrackThickness(2.f),
+      mTrackThickness(1.f),
       mHoverHandleThickness(12.f),
       mDragHandleThickness(14.f),
       mCurrentHandleThickness(mBaseHandleThickness),
       mCurrentSliderHandleColor(mSliderHandleColor),
-      mIsHorizontal(true),
       mIsDragging(false),
       mAnimationDurationMs(100),
       mAnimationTargetState(EAnimationState::kNone),
@@ -39,7 +38,6 @@ ReacomaSlider::ReacomaSlider(const IRECT& bounds, int paramIdx)
       mValueTextPadding(2.f),
       mReservedTextWidth(40.f),
       mReservedTextHeight(18.f)
-      // mValueTextRect is initialized by CalculateValueTextRect
 {
     SetTooltip("Reacoma Slider");
     mValueTextStyle.mFGColor = mTrackFillColor; // Initial text color based on track fill
@@ -54,9 +52,7 @@ void ReacomaSlider::SetSwissColors(const IColor& trackBgColor, const IColor& tra
     mMouseOverHandleColor = hoverColor;
     mDragHandleColor = dragColor;
 
-    mValueTextStyle.mFGColor = mTrackFillColor; // Update text color too
-
-    // Update current handle color based on state (if not animating)
+    mValueTextStyle.mFGColor = mTrackFillColor;
     if (!GetAnimationFunction()) {
         if (mIsDragging)
             mCurrentSliderHandleColor = mDragHandleColor;
@@ -103,73 +99,52 @@ void ReacomaSlider::CalculateValueTextRect()
         return;
     }
 
-    if (mIsHorizontal) {
-        // Text on the right side
-        mValueTextRect = IRECT(mRECT.R - mReservedTextWidth, mRECT.T, mRECT.R, mRECT.B)
-                            .GetVPadded(mValueTextPadding);
-    } else { // Vertical
-        // Text at the top
-        mValueTextRect = mRECT.GetFromTop(mReservedTextHeight).GetHPadded(mValueTextPadding);
-    }
+    mValueTextRect = IRECT(mRECT.R - mReservedTextWidth, mRECT.T, mRECT.R, mRECT.B)
+        .GetVPadded(mValueTextPadding);
 }
 
 void ReacomaSlider::Draw(IGraphics& g)
 {
-    double value = GetValue(); // Normalized value [0, 1]
-    IRECT trackRect, filledTrackRect, handleRect;
-    float currentHandleDim = mCurrentHandleThickness;
+  double value = GetValue();
+  IRECT trackRect, filledTrackRect, handleRect;
+  float currentHandleDim = mCurrentHandleThickness;
 
-    // Determine the area available for the slider track (excluding text display area)
-    IRECT sliderTrackArea = mRECT;
-    if (mDrawValue) {
-        if (mIsHorizontal) {
-            sliderTrackArea.R -= mReservedTextWidth;
-        } else {
-            sliderTrackArea.T += mReservedTextHeight; // Text is at the top for vertical
-        }
-    }
+  IRECT sliderTrackArea = mRECT;
+  if (mDrawValue) {
+    sliderTrackArea.R -= mReservedTextWidth;
+  }
 
-    if (mIsHorizontal) {
-        float trackY = sliderTrackArea.MH() - (mTrackThickness / 2.f);
-        trackRect = IRECT(sliderTrackArea.L, trackY, sliderTrackArea.R, trackY + mTrackThickness);
-        
-        float filledWidth = static_cast<float>(value * sliderTrackArea.W());
-        filledTrackRect = IRECT(sliderTrackArea.L, trackY, sliderTrackArea.L + filledWidth, trackY + mTrackThickness);
+  float trackY = sliderTrackArea.MH() - (mTrackThickness / 2.f);
+  trackRect = IRECT(sliderTrackArea.L, trackY, sliderTrackArea.R, trackY + mTrackThickness);
 
-        float handleX = sliderTrackArea.L + filledWidth - (currentHandleDim / 2.f);
-        handleX = std::max(sliderTrackArea.L, std::min(handleX, sliderTrackArea.R - currentHandleDim));
-        handleRect = IRECT(handleX, mRECT.T, handleX + currentHandleDim, mRECT.B); // Handle can span full height of original mRECT
-    } else { // Vertical
-        float trackX = sliderTrackArea.MW() - (mTrackThickness / 2.f);
-        trackRect = IRECT(trackX, sliderTrackArea.T, trackX + mTrackThickness, sliderTrackArea.B);
+  float filledWidth = static_cast<float>(value * sliderTrackArea.W());
+  filledTrackRect = IRECT(sliderTrackArea.L, trackY, sliderTrackArea.L + filledWidth, trackY + mTrackThickness);
 
-        float filledHeight = static_cast<float>(value * sliderTrackArea.H());
-        // Value 0 is at bottom, 1 at top for fill calculation
-        filledTrackRect = IRECT(trackX, sliderTrackArea.B - filledHeight, trackX + mTrackThickness, sliderTrackArea.B);
+  float handleX = sliderTrackArea.L + filledWidth - (currentHandleDim / 2.f);
+  handleX = std::max(sliderTrackArea.L, std::min(handleX, sliderTrackArea.R - currentHandleDim));
+  handleRect = IRECT(handleX, mRECT.T, handleX + currentHandleDim, mRECT.B);
 
-        float handleY = sliderTrackArea.B - filledHeight - (currentHandleDim / 2.f);
-        handleY = std::max(sliderTrackArea.T, std::min(handleY, sliderTrackArea.B - currentHandleDim));
-        handleRect = IRECT(mRECT.L, handleY, mRECT.R, handleY + currentHandleDim); // Handle can span full width of original mRECT
-    }
+  g.FillRect(mTrackBackgroundColor, trackRect);
+  g.FillRect(mTrackFillColor, filledTrackRect);
+  g.FillRect(mCurrentSliderHandleColor, handleRect);
 
-    g.FillRect(mTrackBackgroundColor, trackRect);
-    g.FillRect(mTrackFillColor, filledTrackRect);
-    g.FillRect(mCurrentSliderHandleColor, handleRect);
+  if (mDrawValue && GetParam()) {
+    WDL_String displayStr;
+    GetParam()->GetDisplay(displayStr);
 
-    if (mDrawValue && GetParam()) {
-        WDL_String displayStr;
-        GetParam()->GetDisplay(displayStr);
-        
-        IText textStyle = mValueTextStyle;
-        textStyle.mAlign = EAlign::Center;
-        textStyle.mVAlign = EVAlign::Middle;
-        
-        g.DrawText(textStyle, displayStr.Get(), mValueTextRect);
-    }
+    IText textStyle = mValueTextStyle;
+    textStyle.mAlign = EAlign::Center;
+    textStyle.mVAlign = EVAlign::Middle;
 
-    if (IsDisabled()) {
-        g.FillRect(COLOR_GRAY.WithOpacity(0.5f), mRECT, &mBlend);
-    }
+    g.DrawText(textStyle, displayStr.Get(), mValueTextRect);
+  }
+
+  // Add this line to draw the border
+  g.DrawRect(COLOR_BLACK, mRECT); // You can change COLOR_BLACK to any color you prefer
+
+  if (IsDisabled()) {
+    g.FillRect(COLOR_GRAY.WithOpacity(0.5f), mRECT, &mBlend);
+  }
 }
 
 void ReacomaSlider::OnMouseDown(float x, float y, const IMouseMod& mod)
@@ -195,7 +170,6 @@ void ReacomaSlider::OnMouseDown(float x, float y, const IMouseMod& mod)
 void ReacomaSlider::OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod)
 {
     if (mIsDragging) {
-        // Ensure hover/press animations are stopped
         if (GetAnimationFunction()) {
              SetAnimation(nullptr);
              // Ensure visual state is correctly set for dragging if animation was interrupted
@@ -212,23 +186,13 @@ void ReacomaSlider::UpdateValueFromPos(float x, float y)
     float val = 0.f;
     IRECT interactiveArea = mRECT; // Start with full rect
 
-    if (mDrawValue) { // Adjust interactive area if text is displayed
-        if (mIsHorizontal) {
-            interactiveArea.R -= mReservedTextWidth;
-        } else {
-            interactiveArea.T += mReservedTextHeight; // Text is at top for vertical
-        }
+    if (mDrawValue) {
+        interactiveArea.R -= mReservedTextWidth;
     }
     
-    if (mIsHorizontal) {
-        if (interactiveArea.W() <= 0.f) return;
-        float clampedX = std::max(interactiveArea.L, std::min(x, interactiveArea.R));
-        val = (clampedX - interactiveArea.L) / interactiveArea.W();
-    } else { // Vertical
-        if (interactiveArea.H() <= 0.f) return;
-        float clampedY = std::max(interactiveArea.T, std::min(y, interactiveArea.B));
-        val = 1.f - ((clampedY - interactiveArea.T) / interactiveArea.H());
-    }
+    if (interactiveArea.W() <= 0.f) return;
+    float clampedX = std::max(interactiveArea.L, std::min(x, interactiveArea.R));
+    val = (clampedX - interactiveArea.L) / interactiveArea.W();
     
     val = Clip(val, 0.f, 1.f);
     SetValue(val);
@@ -252,7 +216,7 @@ void ReacomaSlider::AnimateState(bool isOver, bool isDragging)
     bool visuallyAtTarget = (std::fabs(mCurrentHandleThickness - targetThickness) < 0.01f && mCurrentSliderHandleColor == targetColor);
 
     if (visuallyAtTarget && mAnimationTargetState == newAnimationTargetState && !GetAnimationFunction()) {
-      return; // Already at the target state and not animating towards something else
+      return;
     }
     
     mAnimationTargetState = newAnimationTargetState; // Set the new target
