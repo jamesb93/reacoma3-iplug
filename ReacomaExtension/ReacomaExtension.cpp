@@ -1,23 +1,23 @@
 // ReacomaExtension.cpp
 #define PLUG_CLASS_NAME ReacomaExtension
 #define PLUG_WIDTH 500
-#define PLUG_HEIGHT 480
+#define PLUG_HEIGHT 480 // Adjusted height to potentially accommodate more controls
 #define PLUG_FPS 60
 #define PLUG_SHARED_RESOURCES 0
 
-#define ROBOTO_FN "IBMPlexSans.ttf"
 #define SHARED_RESOURCES_SUBPATH "ReacomaExtension"
 #include "ReacomaExtension.h"
 #include "ReaperExt_include_in_plug_src.h"
-#include "ibmplexsans.hpp"
-#include "IControls.h"
+//#include "ibmplexsans.hpp"
+#include "ibmplexmono.hpp"
+#include "IControls.h" // Make sure this includes ITextControl, ICheckboxControl if used
 #include "ReacomaSlider.h"
 #include "ReacomaButton.h"
 #include "ReacomaSegmented.h"
-#include "Algorithms/NoveltySliceAlgorithm.h" // Make sure this is correctly pathed
-#include "IAlgorithm.h" // Include IAlgorithm
-
-// Removed old global Params and EAlgorithmOptions enums
+#include "Algorithms/NoveltySliceAlgorithm.h"
+#include "Algorithms/HPSSAlgorithm.h"
+#include "IAlgorithm.h"
+#include "IPlugParameter.h"
 
 template <ReacomaExtension::Mode M>
 struct ProcessAction
@@ -31,7 +31,6 @@ struct ProcessAction
 ReacomaExtension::ReacomaExtension(reaper_plugin_info_t* pRec) :
 ReaperExtBase(pRec)
 {
-    // Create and register algorithm and its parameters
     mAlgorithm = std::make_unique<NoveltySliceAlgorithm>(this);
     if (mAlgorithm) {
         mAlgorithm->RegisterParameters();
@@ -69,7 +68,7 @@ ReaperExtBase(pRec)
     RegisterAction("Reacoma: Show/Hide UI", [&]() { ShowHideMainWindow(); mGUIToggle = !mGUIToggle; }, true, &mGUIToggle);
 
     mLayoutFunc = [&](IGraphics* pGraphics) {
-        const IRECT bounds = pGraphics->GetBounds(); // Full plugin window area
+        const IRECT bounds = pGraphics->GetBounds();
         const IColor swissBackgroundColor = COLOR_WHITE;
 
         if (pGraphics->NControls()) {
@@ -80,22 +79,16 @@ ReaperExtBase(pRec)
             }
         }
         pGraphics->EnableMouseOver(true);
-        pGraphics->LoadFont("IBMPlexSans", (void*) IBMPLEXSANS, IBMPLEXSANS_length);
+        pGraphics->LoadFont("IBMPlexSans", (void*) IBMPLEXMONO, IBMPLEXMONO_length);
         pGraphics->AttachPanelBackground(swissBackgroundColor);
 
         float globalFramePadding = 20.f;
         float topContentMargin = 10.f;
-        float bottomContentMargin = 20.f;
-
-        float sliderHeight = 10.f;
-        float sliderRowCellHeight = sliderHeight + 0.f;
-        float spaceBetweenSlidersVertically = 0.f;
-        float spaceBelowSliderStack = 0.f;
-        float actionButtonHeight = 30.f;
-        float buttonPadding = 2.f;
-        float segmentedControlHeight = 30.f;
-        float spaceBeforeSegmentedControl = 15.f;
-        float spaceBelowSegmentedControl = 20.f;
+        float bottomContentMargin = 10.f;
+        float actionButtonHeight = 20.f;
+        float buttonPadding = 1.f;
+        float controlVisualHeight = 30.f; // Standard height for the visual part of the control
+        float verticalSpacing = 5.f;   // Vertical spacing between controls
 
         IRECT mainContentArea = bounds.GetPadded(-globalFramePadding);
         mainContentArea.T += topContentMargin;
@@ -110,96 +103,78 @@ ReaperExtBase(pRec)
         
         IRECT currentLayoutBounds = mainContentArea;
 
-        // Use mAlgorithm to get correct parameter indices
         if (mAlgorithm)
         {
-            std::vector<int> sliderParamIndices;
-            // Cast mAlgorithm to NoveltySliceAlgorithm* to access its specific enums
-            // This is safe if you know mAlgorithm is always a NoveltySliceAlgorithm here.
-            // For a more generic approach, you might need a different way to identify params.
-            auto* noveltyAlgo = dynamic_cast<NoveltySliceAlgorithm*>(mAlgorithm.get());
-            if (noveltyAlgo) {
-                 sliderParamIndices.push_back(mAlgorithm->GetGlobalParamIdx(NoveltySliceAlgorithm::kThreshold));
-                 sliderParamIndices.push_back(mAlgorithm->GetGlobalParamIdx(NoveltySliceAlgorithm::kFilterSize));
-            }
+            
+            int numAlgoParams = mAlgorithm->GetNumAlgorithmParams();
 
-
-            if (!sliderParamIndices.empty())
+            for (int i = 0; i < numAlgoParams; ++i)
             {
-                for (size_t i = 0; i < sliderParamIndices.size(); ++i) {
-                    if (currentLayoutBounds.H() < sliderRowCellHeight) break;
+                if (currentLayoutBounds.H() < controlVisualHeight) break;
 
-                    if (i > 0) {
-                        if (currentLayoutBounds.H() < (spaceBetweenSlidersVertically + sliderRowCellHeight)) break;
-                        currentLayoutBounds.T += spaceBetweenSlidersVertically;
+                int globalParamIdx = mAlgorithm->GetGlobalParamIdx(i);
+                IParam* pParam = pGraphics->GetDelegate()->GetParam(globalParamIdx);
+                
+                // Allocate cell for the control + its name (optional, for future)
+                IRECT controlCellRect = currentLayoutBounds.GetFromTop(controlVisualHeight);
+
+                IParam::EParamType type = pParam->Type();
+                auto paramName = pParam->GetName();
+
+                if (type == IParam::EParamType::kTypeDouble || (type == IParam::EParamType::kTypeInt && pParam->GetMax() >= pParam->GetMin())) // Allow slider for single value Int too
+                {
+                    // Make slider rect a bit smaller than cell for padding, or use full cellRect
+                    IRECT sliderBounds = controlCellRect.GetVPadded(-5.f); // Example padding
+                    if (sliderBounds.H() < 10.f) sliderBounds.B = sliderBounds.T + 10.f; // Ensure min height
+
+                    auto* slider = new ReacomaSlider(sliderBounds, globalParamIdx);
+                    slider->SetTrackThickness(1.0f);
+                    slider->SetHandleThickness(10.0f);
+                    slider->SetDrawValue(true);
+                    slider->SetTooltip(paramName); // Tooltip with param name
+                    pGraphics->AttachControl(slider);
+                }
+                else if (type == IParam::EParamType::kTypeEnum && pParam->GetMax() > 0)
+                {
+                    std::vector<std::string> labels;
+                    for (int val = 0; val < pParam->GetMax(); ++val)
+                    {
+                        const char* displayText = pParam->GetDisplayTextAtIdx(val);
+                        labels.push_back(displayText);
                     }
                     
-                    IRECT sliderCell = currentLayoutBounds.GetFromTop(sliderRowCellHeight);
-                    IRECT sliderActualBounds = sliderCell.GetMidVPadded(sliderHeight / 2.f);
-
-                    if (sliderActualBounds.W() < 10.f) sliderActualBounds.R = sliderActualBounds.L + 10.f;
-                        
-                    auto* reacomaSlider = new ReacomaSlider(sliderActualBounds, sliderParamIndices[i]);
-                    reacomaSlider->SetTrackThickness(2.0f);
-                    reacomaSlider->SetHandleThickness(10.0f);
-                    pGraphics->AttachControl(reacomaSlider);
-
-                    currentLayoutBounds.T = sliderCell.B;
-                }
-                if (currentLayoutBounds.H() < spaceBelowSliderStack) { /* Potentially break */ }
-                else currentLayoutBounds.T += spaceBelowSliderStack;
-            }
-
-            // --- Algorithm Segmented Control ---
-            std::vector<std::string> segmentLabels;
-            // Populate labels based on NoveltySliceAlgorithm::EAlgorithmOptions
-            if (noveltyAlgo) {
-                for(int i = 0; i < NoveltySliceAlgorithm::kNumAlgorithmOptions; ++i) {
-                    // This assumes IParam::GetDisplayText can be used, or you manually map enum to string
-                    // For simplicity, using the same strings as before.
-                    // You might need to retrieve these from IParam if they are set there.
-                     switch(i) {
-                        case NoveltySliceAlgorithm::kSpectrum: segmentLabels.push_back("Spectrum"); break;
-                        case NoveltySliceAlgorithm::kMFCC: segmentLabels.push_back("MFCC"); break;
-                        case NoveltySliceAlgorithm::kChroma: segmentLabels.push_back("Chroma"); break;
-                        case NoveltySliceAlgorithm::kPitch: segmentLabels.push_back("Pitch"); break;
-                        case NoveltySliceAlgorithm::kLoudness: segmentLabels.push_back("Loudness"); break;
-                     }
-                }
-            }
-
-
-            IText segmentedTextStyle(14.f, COLOR_BLACK, "IBMPlexSans");
-            IColor activeColor = DEFAULT_PRCOLOR;
-            IColor inactiveColor = DEFAULT_BGCOLOR;
-
-            if (currentLayoutBounds.H() < (spaceBeforeSegmentedControl + segmentedControlHeight)) { /* Skip */ }
-            else {
-                currentLayoutBounds.T += spaceBeforeSegmentedControl;
-                if (currentLayoutBounds.H() < segmentedControlHeight) { /* Skip */ }
-                else {
-                    IRECT segmentedControlBounds = currentLayoutBounds.GetFromTop(segmentedControlHeight);
-                    if (noveltyAlgo && !segmentLabels.empty()) { // Ensure labels are populated
-                        pGraphics->AttachControl(new ReacomaSegmented(segmentedControlBounds,
-                                                                  mAlgorithm->GetGlobalParamIdx(NoveltySliceAlgorithm::kAlgorithm),
-                                                                  segmentLabels,
-                                                                  segmentedTextStyle,
-                                                                  activeColor,
-                                                                  inactiveColor
-                                                                  ));
+                    if (!labels.empty())
+                    {
+                        IText segmentedTextStyle(14.f, COLOR_BLACK, "IBMPlexSans");
+                        IColor activeColor = DEFAULT_PRCOLOR;
+                        IColor inactiveColor = DEFAULT_BGCOLOR;
+                        // ReacomaSegmented uses paramIdx to get its value, which InitEnum maps correctly
+                        pGraphics->AttachControl(new ReacomaSegmented(controlCellRect, globalParamIdx, labels, segmentedTextStyle, activeColor, inactiveColor));
                     }
-                    currentLayoutBounds.T = segmentedControlBounds.B;
-
-                    if (currentLayoutBounds.H() < spaceBelowSegmentedControl) { /* Skip */ }
-                    else currentLayoutBounds.T += spaceBelowSegmentedControl;
+                }
+                
+                currentLayoutBounds.T = controlCellRect.B;
+                if (i < numAlgoParams - 1)
+                {
+                    if (currentLayoutBounds.H() < verticalSpacing) break;
+                    currentLayoutBounds.T += verticalSpacing;
                 }
             }
         }
+        // Update the top of the remaining area for subsequent controls like action buttons
+        mainContentArea.T = currentLayoutBounds.T;
 
-
-        if (currentLayoutBounds.H() < actionButtonHeight) { /* Skip buttons */ }
+        // Add a little space before action buttons if there were parameters
+        if (mAlgorithm && mAlgorithm->GetNumAlgorithmParams() > 0) {
+            if (mainContentArea.H() < 20.f) { /* Skip */ }
+            else mainContentArea.T += 20.f;
+        }
+        
+        // --- Action Buttons ---
+        // Ensure there's enough height for the action button row
+        if (mainContentArea.H() < actionButtonHeight) { /* Skip buttons */ }
         else {
-            IRECT actionButtonRowBounds = currentLayoutBounds.GetFromTop(actionButtonHeight);
+            IRECT actionButtonRowBounds = mainContentArea.GetFromTop(actionButtonHeight);
             int numActionButtons = 3;
             auto AddReacomaAction = [&](IActionFunction function, int colIdx, const char* label) {
                 IRECT b = actionButtonRowBounds.GetGridCell(0, colIdx, 1, numActionButtons)
@@ -220,17 +195,65 @@ void ReacomaExtension::OnUIClose()
 
 void ReacomaExtension::Process(Mode mode, bool force)
 {
-    MediaItem* item = GetSelectedMediaItem(0, 0);
-    
-    if (mAlgorithm && item) {
-        // Assuming the mode implies which algorithm or action to take.
-        // For now, we only have one algorithm.
-        // If 'mode' was meant to select different algorithms, that logic would go here.
-        if (mode == Mode::Markers) { // Or Segment, Regions if they use the same algo
-             mAlgorithm->ProcessItem(item);
-        }
+    const int numSelectedItems = CountSelectedMediaItems(0);
+    if (numSelectedItems == 0) {
+        return;
     }
-    // Old code removed for clarity
+
+    ReaProject* project = GetItemProjectContext(GetSelectedMediaItem(0, 0));
+
+    bool undoBlockStarted = false;
+    const char* undoDesc = "Reacoma Process"; // Default undo description
+
+    if (mode != Mode::Preview) // Assuming a Preview mode might be added later
+    {
+        switch (mode) {
+            case Mode::Segment: undoDesc = "Reacoma: Segment Item(s)"; break;
+            case Mode::Markers: undoDesc = "Reacoma: Process Markers for Item(s)"; break;
+            case Mode::Regions: undoDesc = "Reacoma: Create Region(s) for Item(s)"; break;
+            default: undoDesc = "Reacoma: Unknown Action"; break;
+        }
+        Undo_BeginBlock2(project);
+        undoBlockStarted = true;
+    }
+
+    for (int i = 0; i < numSelectedItems; ++i)
+    {
+        MediaItem* item = GetSelectedMediaItem(0, i);
+        if (!item) continue;
+
+        bool success = false;
+        switch (mode)
+        {
+            case Mode::Segment:
+                ShowConsoleMsg("Segment mode is conceptual. Implement in IAlgorithm if needed.\n");
+                break;
+            case Mode::Markers:
+                success = mAlgorithm->ProcessItem(item);
+                break;
+            case Mode::Regions:
+                ShowConsoleMsg("Regions mode is conceptual. Implement in IAlgorithm if needed.\n");
+                break;
+            case Mode::Preview: // If preview functionality is added later
+                // mAlgorithm->UpdatePreviewForItem(item); // Hypothetical
+                break;
+            default:
+                ShowConsoleMsg("ReacomaExtension: Unknown processing mode.\n");
+                break;
+        }
+        // You might want to log success/failure or handle errors per item.
+    }
+
+    if (undoBlockStarted)
+    {
+        Undo_EndBlock2(project, undoDesc, -1); // -1 for default flags
+    }
+
+    // After processing, update REAPER's arrange view and timeline if necessary
+    if (mode != Mode::Preview) {
+        UpdateArrange();  // Redraws the arrange view
+        UpdateTimeline(); // Redraws the timeline
+    }
 }
 
 bool ReacomaExtension::UpdateSelectedItems(bool force)
