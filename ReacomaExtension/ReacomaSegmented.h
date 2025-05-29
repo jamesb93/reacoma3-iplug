@@ -13,7 +13,6 @@ class ReacomaSegmented : public IControl
         
         void Draw(IGraphics& g) override;
         void OnMouseDown(float x, float y, const IMouseMod& mod) override;
-        // Potentially OnMouseOver, OnMouseOut for hover effects on segments
         
     private:
         std::vector<std::string> mSegmentLabels;

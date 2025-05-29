@@ -8,16 +8,16 @@
 #define SHARED_RESOURCES_SUBPATH "ReacomaExtension"
 #include "ReacomaExtension.h"
 #include "ReaperExt_include_in_plug_src.h"
-//#include "ibmplexsans.hpp"
 #include "ibmplexmono.hpp"
+#include "roboto.hpp"
 #include "IControls.h" // Make sure this includes ITextControl, ICheckboxControl if used
-#include "ReacomaSlider.h"
-#include "ReacomaButton.h"
-#include "ReacomaSegmented.h"
 #include "Algorithms/NoveltySliceAlgorithm.h"
 #include "Algorithms/HPSSAlgorithm.h"
 #include "IAlgorithm.h"
 #include "IPlugParameter.h"
+#include "ReacomaSlider.h"
+#include "ReacomaButton.h"
+#include "ReacomaSegmented.h"
 
 template <ReacomaExtension::Mode M>
 struct ProcessAction
@@ -30,12 +30,7 @@ struct ProcessAction
 
 ReacomaExtension::ReacomaExtension(reaper_plugin_info_t* pRec) :
 ReaperExtBase(pRec)
-{
-    mAlgorithm = std::make_unique<NoveltySliceAlgorithm>(this);
-    if (mAlgorithm) {
-        mAlgorithm->RegisterParameters();
-    }
-    
+{   
     IMPAPI(CountSelectedMediaItems);
     IMPAPI(GetSelectedMediaItem);
     IMPAPI(GetItemProjectContext);
@@ -66,33 +61,55 @@ ReaperExtBase(pRec)
     };
 
     RegisterAction("Reacoma: Show/Hide UI", [&]() { ShowHideMainWindow(); mGUIToggle = !mGUIToggle; }, true, &mGUIToggle);
+    
+    AddParam();
+    GetParam(kParamAlgorithmChoice)->InitEnum("Algorithm", kNoveltySlice, kNumAlgorithmChoices - 1);
+    GetParam(kParamAlgorithmChoice)->SetDisplayText(kNoveltySlice, "Novelty Slice");
+    GetParam(kParamAlgorithmChoice)->SetDisplayText(kHPSS, "HPSS");
+
+    mNoveltyAlgorithm = std::make_unique<NoveltySliceAlgorithm>(this);
+    mNoveltyAlgorithm->RegisterParameters();
+
+    mHPSSAlgorithm = std::make_unique<HPSSAlgorithm>(this);
+    mHPSSAlgorithm->RegisterParameters();
+
+    SetAlgorithmChoice(kNoveltySlice, false);
 
     mLayoutFunc = [&](IGraphics* pGraphics) {
+        pGraphics->SetLayoutOnResize(true);
         const IRECT bounds = pGraphics->GetBounds();
         const IColor swissBackgroundColor = COLOR_WHITE;
 
-        if (pGraphics->NControls()) {
+        if (pGraphics->NControls()) { // You might need a flag like mForceLayout
+                                                     // set by SetAlgorithmChoice to force full redraw
             IControl* pBG = pGraphics->GetBackgroundControl();
             if(pBG) {
                 pBG->SetTargetAndDrawRECTs(bounds);
-                return;
             }
         }
-        pGraphics->EnableMouseOver(true);
-        pGraphics->LoadFont("IBMPlexSans", (void*) IBMPLEXMONO, IBMPLEXMONO_length);
-        pGraphics->AttachPanelBackground(swissBackgroundColor);
+        
+        pGraphics->RemoveAllControls(); // Or selectively remove algorithm-specific controls
 
+        pGraphics->EnableMouseOver(true);
+        pGraphics->LoadFont("ibmplex", (void*) IBMPLEXMONO, IBMPLEXMONO_length);
+        // pGraphics->LoadFont("Roboto-Regular", (void*) ROBOTO_REGULAR, ROBOTO_REGULAR_length); // Already loaded
+        pGraphics->AttachPanelBackground(swissBackgroundColor);
+            
         float globalFramePadding = 20.f;
         float topContentMargin = 10.f;
         float bottomContentMargin = 10.f;
-        float actionButtonHeight = 20.f;
+        float actionButtonHeight = 30.f; // Increased for better clickability
         float buttonPadding = 1.f;
-        float controlVisualHeight = 30.f; // Standard height for the visual part of the control
-        float verticalSpacing = 5.f;   // Vertical spacing between controls
+        float controlVisualHeight = 30.f;
+        float verticalSpacing = 10.f;   // Increased for clarity
+            
+        IText segmentedTextStyle(14.f, COLOR_BLACK, "ibmplex");
+        IColor activeColor = DEFAULT_PRCOLOR;
+        IColor inactiveColor = DEFAULT_BGCOLOR;
 
         IRECT mainContentArea = bounds.GetPadded(-globalFramePadding);
         mainContentArea.T += topContentMargin;
-        
+            
         if (mainContentArea.H() > bottomContentMargin) {
             mainContentArea.B -= bottomContentMargin;
         } else {
@@ -100,44 +117,55 @@ ReaperExtBase(pRec)
                 mainContentArea.B = mainContentArea.T;
             }
         }
-        
-        IRECT currentLayoutBounds = mainContentArea;
-
-        if (mAlgorithm)
-        {
             
-            int numAlgoParams = mAlgorithm->GetNumAlgorithmParams();
+        IRECT currentLayoutBounds = mainContentArea;
+        IRECT algorithmSelectorRect;
+        if (currentLayoutBounds.H() >= controlVisualHeight) { // Check if there's space
+            algorithmSelectorRect = currentLayoutBounds.GetFromTop(controlVisualHeight); // Use proper height
+            currentLayoutBounds.T = algorithmSelectorRect.B + verticalSpacing; // IMPORTANT: Advance currentLayoutBounds.T
 
+            std::vector<std::string> algoLabels;
+            IParam* pAlgoChoiceParam = GetParam(kParamAlgorithmChoice);
+            if (pAlgoChoiceParam) { // Check if param exists
+                for(int i = 0; i < pAlgoChoiceParam->GetMax() + 1; ++i) { // GetMax() is max index, so loop to GetMax() + 1 for count
+                    algoLabels.push_back(pAlgoChoiceParam->GetDisplayTextAtIdx(i));
+                }
+            }
+            pGraphics->AttachControl(new ReacomaSegmented(algorithmSelectorRect, kParamAlgorithmChoice, algoLabels, segmentedTextStyle, activeColor, inactiveColor));
+        }
+            
+        if (mCurrentActiveAlgorithmPtr && mForceParameterRedraw)
+        {
+            mForceParameterRedraw = false;
+            int numAlgoParams = mCurrentActiveAlgorithmPtr->GetNumAlgorithmParams();
             for (int i = 0; i < numAlgoParams; ++i)
             {
-                if (currentLayoutBounds.H() < controlVisualHeight) break;
+                if (currentLayoutBounds.H() < controlVisualHeight) break; // Check space against remaining currentLayoutBounds
 
-                int globalParamIdx = mAlgorithm->GetGlobalParamIdx(i);
-                IParam* pParam = pGraphics->GetDelegate()->GetParam(globalParamIdx);
+                int globalParamIdx = mCurrentActiveAlgorithmPtr->GetGlobalParamIdx(i);
+                IParam* pParam = GetParam(globalParamIdx); // No need for pGraphics->GetDelegate()->
                 
-                // Allocate cell for the control + its name (optional, for future)
                 IRECT controlCellRect = currentLayoutBounds.GetFromTop(controlVisualHeight);
 
                 IParam::EParamType type = pParam->Type();
                 auto paramName = pParam->GetName();
 
-                if (type == IParam::EParamType::kTypeDouble || (type == IParam::EParamType::kTypeInt && pParam->GetMax() >= pParam->GetMin())) // Allow slider for single value Int too
+                if (type == IParam::EParamType::kTypeDouble || (type == IParam::EParamType::kTypeInt && pParam->GetMax() >= pParam->GetMin()))
                 {
-                    // Make slider rect a bit smaller than cell for padding, or use full cellRect
-                    IRECT sliderBounds = controlCellRect.GetVPadded(-5.f); // Example padding
-                    if (sliderBounds.H() < 10.f) sliderBounds.B = sliderBounds.T + 10.f; // Ensure min height
+                    IRECT sliderBounds = controlCellRect.GetVPadded(-5.f);
+                    if (sliderBounds.H() < 10.f) sliderBounds.B = sliderBounds.T + 10.f;
 
                     auto* slider = new ReacomaSlider(sliderBounds, globalParamIdx);
                     slider->SetTrackThickness(1.0f);
                     slider->SetHandleThickness(10.0f);
                     slider->SetDrawValue(true);
-                    slider->SetTooltip(paramName); // Tooltip with param name
+                    slider->SetTooltip(paramName);
                     pGraphics->AttachControl(slider);
                 }
-                else if (type == IParam::EParamType::kTypeEnum && pParam->GetMax() > 0)
+                else if (type == IParam::EParamType::kTypeEnum && pParam->GetMax() > 0) // pParam->GetMax() for enums is count-1
                 {
                     std::vector<std::string> labels;
-                    for (int val = 0; val < pParam->GetMax(); ++val)
+                    for (int val = 0; val <= pParam->GetMax(); ++val) // Loop up to and including GetMax()
                     {
                         const char* displayText = pParam->GetDisplayTextAtIdx(val);
                         labels.push_back(displayText);
@@ -145,47 +173,30 @@ ReaperExtBase(pRec)
                     
                     if (!labels.empty())
                     {
-                        IText segmentedTextStyle(14.f, COLOR_BLACK, "IBMPlexSans");
-                        IColor activeColor = DEFAULT_PRCOLOR;
-                        IColor inactiveColor = DEFAULT_BGCOLOR;
-                        // ReacomaSegmented uses paramIdx to get its value, which InitEnum maps correctly
                         pGraphics->AttachControl(new ReacomaSegmented(controlCellRect, globalParamIdx, labels, segmentedTextStyle, activeColor, inactiveColor));
                     }
                 }
                 
-                currentLayoutBounds.T = controlCellRect.B;
-                if (i < numAlgoParams - 1)
-                {
-                    if (currentLayoutBounds.H() < verticalSpacing) break;
-                    currentLayoutBounds.T += verticalSpacing;
-                }
+                currentLayoutBounds.T = controlCellRect.B + verticalSpacing;
             }
         }
-        // Update the top of the remaining area for subsequent controls like action buttons
+        
         mainContentArea.T = currentLayoutBounds.T;
 
-        // Add a little space before action buttons if there were parameters
-        if (mAlgorithm && mAlgorithm->GetNumAlgorithmParams() > 0) {
-            if (mainContentArea.H() < 20.f) { /* Skip */ }
-            else mainContentArea.T += 20.f;
-        }
-        
-        // --- Action Buttons ---
-        // Ensure there's enough height for the action button row
-        if (mainContentArea.H() < actionButtonHeight) { /* Skip buttons */ }
-        else {
+        if (mainContentArea.H() >= actionButtonHeight) { // Check for space for buttons
             IRECT actionButtonRowBounds = mainContentArea.GetFromTop(actionButtonHeight);
             int numActionButtons = 3;
             auto AddReacomaAction = [&](IActionFunction function, int colIdx, const char* label) {
-                IRECT b = actionButtonRowBounds.GetGridCell(0, colIdx, 1, numActionButtons)
-                                .GetHPadded(buttonPadding);
+                IRECT b = actionButtonRowBounds
+                    .GetGridCell(0, colIdx, 1, numActionButtons)
+                    .GetHPadded(buttonPadding);
                 pGraphics->AttachControl(new ReacomaButton(b, label, function));
             };
             AddReacomaAction(ProcessAction<Mode::Segment>{}, 0, "Segment");
             AddReacomaAction(ProcessAction<Mode::Markers>{}, 1, "Markers");
             AddReacomaAction(ProcessAction<Mode::Regions>{}, 2, "Regions");
         }
-    }; // End of mLayoutFunc
+    };
 }
 
 void ReacomaExtension::OnUIClose()
@@ -229,7 +240,7 @@ void ReacomaExtension::Process(Mode mode, bool force)
                 ShowConsoleMsg("Segment mode is conceptual. Implement in IAlgorithm if needed.\n");
                 break;
             case Mode::Markers:
-                success = mAlgorithm->ProcessItem(item);
+                success = mCurrentActiveAlgorithmPtr->ProcessItem(item);
                 break;
             case Mode::Regions:
                 ShowConsoleMsg("Regions mode is conceptual. Implement in IAlgorithm if needed.\n");
@@ -274,11 +285,23 @@ bool ReacomaExtension::UpdateSelectedItems(bool force)
 
 void ReacomaExtension::OnParamChangeUI(int paramIdx, EParamSource source)
 {
-    if (GetUI()) {
-        // Potentially trigger redraw or other UI updates if needed
-        // Example: GetUI()->SetControlDirty(paramIdx); // If you had a direct mapping
-        // Or just redraw all:
-        GetUI()->SetAllControlsDirty();
+    if (paramIdx == kParamAlgorithmChoice) // kParamAlgorithmChoice is the index of your algo selector param
+    {
+        int selectedAlgoChoiceInt = GetParam(paramIdx)->Int();
+        EAlgorithmChoice selectedAlgo = static_cast<EAlgorithmChoice>(selectedAlgoChoiceInt);
+
+        if (selectedAlgo != mCurrentAlgorithmChoice)
+        {
+            SetAlgorithmChoice(selectedAlgo, true); // true to trigger UI relayout
+        }
+    }
+    else
+    {
+        // If the change is for a parameter belonging to the currently active algorithm,
+        // you might want to update its control or the whole UI.
+//        if (GetUI()) {
+//             GetUI()->SetAllControlsDirty(); // Or be more specific to the control linked to paramIdx
+//        }
     }
 }
 
@@ -288,4 +311,32 @@ void ReacomaExtension::OnIdle()
     {
         // Idle tasks
     }
+}
+
+void ReacomaExtension::SetAlgorithmChoice(EAlgorithmChoice choice, bool triggerUIRelayout)
+{
+    mCurrentAlgorithmChoice = choice;
+    switch (choice)
+    {
+        case kNoveltySlice:
+            mCurrentActiveAlgorithmPtr = mNoveltyAlgorithm.get();
+            break;
+        case kHPSS:
+            mCurrentActiveAlgorithmPtr = mHPSSAlgorithm.get();
+            break;
+        default:
+            mCurrentActiveAlgorithmPtr = nullptr; // Should not happen
+            break;
+    }
+    
+    mForceParameterRedraw = true;
+
+    if (triggerUIRelayout && GetUI())
+    {
+        // Force the UI to re-layout by calling Resize.
+        // This will typically trigger your mLayoutFunc.
+        GetUI()->Resize(PLUG_WIDTH, PLUG_HEIGHT, 1.0);
+    }
+    // If parameters were being dynamically added/removed (not the current plan),
+    // you would call mCurrentActiveAlgorithmPtr->RegisterParameters() here after clearing old ones.
 }

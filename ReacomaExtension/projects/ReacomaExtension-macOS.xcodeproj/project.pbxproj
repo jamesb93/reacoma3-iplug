@@ -7,16 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4980C2382DE8310E0036DDBE /* roboto.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4980C2372DE8310E0036DDBE /* roboto.cpp */; };
 		49CE7DE72DE17B4800F412D8 /* VectorBufferAdaptor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49CE7DE62DE17B4800F412D8 /* VectorBufferAdaptor.cpp */; };
 		49CE7DEA2DE17B5300F412D8 /* ReacomaSlider.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49CE7DE92DE17B5300F412D8 /* ReacomaSlider.cpp */; };
 		49CE7DED2DE1806B00F412D8 /* ReacomaButton.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49CE7DEC2DE1806B00F412D8 /* ReacomaButton.cpp */; };
-		49CE7DF02DE1A62300F412D8 /* ibmplexsans.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49CE7DEF2DE1A62300F412D8 /* ibmplexsans.cpp */; };
 		49CE7DF32DE213D400F412D8 /* ReacomaSegmented.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49CE7DF22DE213D400F412D8 /* ReacomaSegmented.cpp */; };
 		49CE7E1C2DE36F7100F412D8 /* ibmplexmono.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49CE7E1B2DE36F7100F412D8 /* ibmplexmono.cpp */; };
 		4F56E31B227F43A400F3E839 /* IGraphicsCoreText.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4F56E319227F43A400F3E839 /* IGraphicsCoreText.mm */; };
 		4F56E325227F9C3200F3E839 /* IGraphicsNanoVG_src.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FBB8C2521EA55BD00C1EF1B /* IGraphicsNanoVG_src.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		4F56E32A227FA3C400F3E839 /* IPlugTimer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4F56E328227FA3C400F3E839 /* IPlugTimer.cpp */; };
-		4F7D28BD2AF2913A0033871E /* roboto.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4F7D28BB2AF2913A0033871E /* roboto.cpp */; };
 		4FBA83B120ECB19100423B90 /* ReacomaExtension.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4FBA837B20ECAE7B00423B90 /* ReacomaExtension.cpp */; };
 		4FBA83B420ECB63400423B90 /* swell-modstub.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4FBA83A720ECAED000423B90 /* swell-modstub.mm */; };
 		4FBB8C7421EA55BD00C1EF1B /* IGraphicsMac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4FBB8C3221EA55BD00C1EF1B /* IGraphicsMac.mm */; };
@@ -33,14 +32,14 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		4980C2362DE8310E0036DDBE /* roboto.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = roboto.hpp; path = ../resources/roboto.hpp; sourceTree = SOURCE_ROOT; };
+		4980C2372DE8310E0036DDBE /* roboto.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = roboto.cpp; path = ../resources/roboto.cpp; sourceTree = SOURCE_ROOT; };
 		49CE7DE52DE17B4800F412D8 /* VectorBufferAdaptor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = VectorBufferAdaptor.h; path = ../VectorBufferAdaptor.h; sourceTree = SOURCE_ROOT; };
 		49CE7DE62DE17B4800F412D8 /* VectorBufferAdaptor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = VectorBufferAdaptor.cpp; path = ../VectorBufferAdaptor.cpp; sourceTree = SOURCE_ROOT; };
 		49CE7DE82DE17B5300F412D8 /* ReacomaSlider.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReacomaSlider.h; path = ../ReacomaSlider.h; sourceTree = SOURCE_ROOT; };
 		49CE7DE92DE17B5300F412D8 /* ReacomaSlider.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ReacomaSlider.cpp; path = ../ReacomaSlider.cpp; sourceTree = SOURCE_ROOT; };
 		49CE7DEB2DE1806B00F412D8 /* ReacomaButton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReacomaButton.h; path = ../ReacomaButton.h; sourceTree = SOURCE_ROOT; };
 		49CE7DEC2DE1806B00F412D8 /* ReacomaButton.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ReacomaButton.cpp; path = ../ReacomaButton.cpp; sourceTree = SOURCE_ROOT; };
-		49CE7DEE2DE1A62300F412D8 /* ibmplexsans.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = ibmplexsans.hpp; path = ../resources/ibmplexsans.hpp; sourceTree = SOURCE_ROOT; };
-		49CE7DEF2DE1A62300F412D8 /* ibmplexsans.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ibmplexsans.cpp; path = ../resources/ibmplexsans.cpp; sourceTree = SOURCE_ROOT; };
 		49CE7DF12DE213D400F412D8 /* ReacomaSegmented.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReacomaSegmented.h; path = ../ReacomaSegmented.h; sourceTree = SOURCE_ROOT; };
 		49CE7DF22DE213D400F412D8 /* ReacomaSegmented.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ReacomaSegmented.cpp; path = ../ReacomaSegmented.cpp; sourceTree = SOURCE_ROOT; };
 		49CE7E1A2DE36F7100F412D8 /* ibmplexmono.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = ibmplexmono.hpp; path = ../resources/ibmplexmono.hpp; sourceTree = SOURCE_ROOT; };
@@ -61,8 +60,6 @@
 		4F74D1D922AA8E760079E7DF /* ReaperExtBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ReaperExtBase.h; sourceTree = "<group>"; };
 		4F74D1DA22AA8E760079E7DF /* ReaperExtBase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ReaperExtBase.cpp; sourceTree = "<group>"; };
 		4F78D8BD13B63A4E0032E0F3 /* wdltypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = wdltypes.h; path = ../../dependencies/iPlug2/WDL/wdltypes.h; sourceTree = SOURCE_ROOT; };
-		4F7D28BB2AF2913A0033871E /* roboto.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = roboto.cpp; path = ../resources/roboto.cpp; sourceTree = "<group>"; };
-		4F7D28BC2AF2913A0033871E /* roboto.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = roboto.hpp; path = ../resources/roboto.hpp; sourceTree = "<group>"; };
 		4F7D28C92AF2ED640033871E /* localize-import.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "localize-import.h"; sourceTree = "<group>"; };
 		4F7D28CA2AF2ED640033871E /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		4F7D28CB2AF2ED640033871E /* video_frame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = video_frame.h; sourceTree = "<group>"; };
@@ -215,12 +212,10 @@
 		089C167CFE841241C02AAC07 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				4980C2362DE8310E0036DDBE /* roboto.hpp */,
+				4980C2372DE8310E0036DDBE /* roboto.cpp */,
 				49CE7E1A2DE36F7100F412D8 /* ibmplexmono.hpp */,
 				49CE7E1B2DE36F7100F412D8 /* ibmplexmono.cpp */,
-				49CE7DEE2DE1A62300F412D8 /* ibmplexsans.hpp */,
-				49CE7DEF2DE1A62300F412D8 /* ibmplexsans.cpp */,
-				4F7D28BB2AF2913A0033871E /* roboto.cpp */,
-				4F7D28BC2AF2913A0033871E /* roboto.hpp */,
 				4FBA83B220ECB28900423B90 /* main.rc */,
 				4FDA1E0F2012CDB30027C868 /* main.rc_mac_dlg */,
 				4FDA1E0E2012CDB30027C868 /* main.rc_mac_menu */,
@@ -511,13 +506,12 @@
 				4F56E32A227FA3C400F3E839 /* IPlugTimer.cpp in Sources */,
 				4FBB8C8721EA56C600C1EF1B /* IPlugParameter.cpp in Sources */,
 				4F56E325227F9C3200F3E839 /* IGraphicsNanoVG_src.m in Sources */,
-				49CE7DF02DE1A62300F412D8 /* ibmplexsans.cpp in Sources */,
 				49CE7DE72DE17B4800F412D8 /* VectorBufferAdaptor.cpp in Sources */,
 				4FBA83B420ECB63400423B90 /* swell-modstub.mm in Sources */,
 				4FBB8C8621EA56C600C1EF1B /* IPlugPaths.mm in Sources */,
 				4FBB8C7E21EA55BD00C1EF1B /* IControls.cpp in Sources */,
 				49CE7DF32DE213D400F412D8 /* ReacomaSegmented.cpp in Sources */,
-				4F7D28BD2AF2913A0033871E /* roboto.cpp in Sources */,
+				4980C2382DE8310E0036DDBE /* roboto.cpp in Sources */,
 				4FBB8C7B21EA55BD00C1EF1B /* IGraphics.cpp in Sources */,
 				4FBA83B120ECB19100423B90 /* ReacomaExtension.cpp in Sources */,
 				4FBB8C7A21EA55BD00C1EF1B /* IGraphicsEditorDelegate.cpp in Sources */,

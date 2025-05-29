@@ -33,7 +33,7 @@ ReacomaSlider::ReacomaSlider(const IRECT& bounds, int paramIdx)
       mIsDragging(false),
       mAnimationDurationMs(100),
       mAnimationTargetState(EAnimationState::kNone),
-      mValueTextStyle(12.f, SWISS_TRACK_FILL_COLOR_DEFAULT, "IBMPlexSans", EAlign::Center, EVAlign::Middle),
+      mValueTextStyle(12.f, SWISS_TRACK_FILL_COLOR_DEFAULT, "ibmplex", EAlign::Center, EVAlign::Middle),
       mDrawValue(true),
       mValueTextPadding(2.f),
       mReservedTextWidth(40.f),
