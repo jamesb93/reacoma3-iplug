@@ -1,11 +1,9 @@
-// IAlgorithm.h
 #pragma once
-#include <memory> // For std::unique_ptr
+#include <memory>
 #include <vector>
 
-// Forward declare Reaper types and your main extension class
 class MediaItem;
-class ReacomaExtension; // Forward-declare ReacomaExtension
+class ReacomaExtension;
 
 class IAlgorithm {
 public:
@@ -28,6 +26,9 @@ public:
     int GetGlobalParamIdx(int algorithmParamEnum) const {
         return mBaseParamIdx + algorithmParamEnum;
     }
+
+    // Gets the number of parameters this algorithm registers
+    virtual int GetNumAlgorithmParams() const = 0;
 
 protected:
     // Protected member to be accessible by derived classes
