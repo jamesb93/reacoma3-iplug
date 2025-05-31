@@ -3,6 +3,7 @@
 #include "reaper_plugin_functions.h"
 #include "IPlugParameter.h" // Required for IParam
 #include "../VectorBufferAdaptor.h" // Ensure this path is correct
+#include "InMemoryDecoder.h"
 
 using namespace fluid;
 using namespace client;
@@ -117,7 +118,31 @@ bool HPSSAlgorithm::ProcessItem(MediaItem* item) {
     if (!result.ok()) {
         return false;
     }
+    
+    AddOutputToTake(item, /*take, */harmOutputBuffer, 1, sampleRate);
+    AddOutputToTake(item, /*take, */percOutputBuffer, 1, sampleRate);
+    
+    UpdateTimeline();
+    
     return true;
+}
+
+void HPSSAlgorithm::AddOutputToTake(MediaItem* item, BufferT::type output, int numChannels, int sampleRate) {
+    fluid::client::BufferAdaptor::ReadAccess bufferReader(output.get());
+    auto sourceData = bufferReader.samps(0).data();
+    
+    std::vector<ReaSample> audioVector;
+    audioVector.resize(bufferReader.numFrames());
+    
+    std::transform(sourceData, sourceData + bufferReader.numFrames(), audioVector.begin(),
+                       [](float f) { return static_cast<ReaSample>(f); });
+    
+    ISimpleMediaDecoder* decoder = new InMemoryDecoder(std::move(audioVector), numChannels, sampleRate);
+    
+    PCM_source* newSource = PCM_Source_CreateFromSimple(decoder, nullptr);
+    auto res = PCM_Source_BuildPeaks(newSource, 0); // TODO: docs say to call this with (src, 1) if this fails. We don't bother with this ATM.
+    MediaItem_Take* newTake = AddTakeToMediaItem(item);
+    GetSetMediaItemTakeInfo(newTake, "P_SOURCE", newSource);
 }
 
 const char* HPSSAlgorithm::GetName() const {

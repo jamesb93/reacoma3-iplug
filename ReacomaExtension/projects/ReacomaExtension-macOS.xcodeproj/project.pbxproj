@@ -34,6 +34,7 @@
 /* Begin PBXFileReference section */
 		4980C2362DE8310E0036DDBE /* roboto.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = roboto.hpp; path = ../resources/roboto.hpp; sourceTree = SOURCE_ROOT; };
 		4980C2372DE8310E0036DDBE /* roboto.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = roboto.cpp; path = ../resources/roboto.cpp; sourceTree = SOURCE_ROOT; };
+		4980C2392DEB59DA0036DDBE /* InMemoryDecoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = InMemoryDecoder.h; sourceTree = "<group>"; };
 		49CE7DE52DE17B4800F412D8 /* VectorBufferAdaptor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = VectorBufferAdaptor.h; path = ../VectorBufferAdaptor.h; sourceTree = SOURCE_ROOT; };
 		49CE7DE62DE17B4800F412D8 /* VectorBufferAdaptor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = VectorBufferAdaptor.cpp; path = ../VectorBufferAdaptor.cpp; sourceTree = SOURCE_ROOT; };
 		49CE7DE82DE17B5300F412D8 /* ReacomaSlider.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReacomaSlider.h; path = ../ReacomaSlider.h; sourceTree = SOURCE_ROOT; };
@@ -178,6 +179,7 @@
 		089C166AFE841209C02AAC07 /* IPlugExample */ = {
 			isa = PBXGroup;
 			children = (
+				4980C2392DEB59DA0036DDBE /* InMemoryDecoder.h */,
 				49CE7E092DE2D3CE00F412D8 /* Algorithms */,
 				49CE7DF12DE213D400F412D8 /* ReacomaSegmented.h */,
 				49CE7DF22DE213D400F412D8 /* ReacomaSegmented.cpp */,

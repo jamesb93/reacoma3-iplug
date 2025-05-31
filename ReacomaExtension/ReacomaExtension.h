@@ -26,7 +26,7 @@ public:
         kNoveltySlice = 0,
         kHPSS,
         kNumAlgorithmChoices
-    }
+    };
         
     ReacomaExtension(reaper_plugin_info_t* pRec);
     void OnUIClose() override;
@@ -41,6 +41,7 @@ private:
     void OnIdle() override;
     bool UpdateSelectedItems(bool force);
     void SetAlgorithmChoice(EAlgorithmChoice choice, bool triggerUIRelayout);
+    void SetupUI(IGraphics* pGraphics);
     
     int mPrevTrackCount = 0;
     int mGUIToggle = 0;
@@ -56,5 +57,5 @@ private:
 
     IAlgorithm* mCurrentActiveAlgorithmPtr = nullptr;
     EAlgorithmChoice mCurrentAlgorithmChoice = kNoveltySlice;
-    bool mForceParameterRedraw = true;
+    bool mNeedsLayout = false;
 };

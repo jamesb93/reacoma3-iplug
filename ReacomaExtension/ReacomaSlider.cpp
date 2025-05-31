@@ -1,6 +1,6 @@
 #include "ReacomaSlider.h"
 #include "IPlugParameter.h"
-#include "IGraphics.h.h"
+#include "IGraphics.h"
 #include "IGraphicsConstants.h"
 #include "IPlugUtilities.h"
 
