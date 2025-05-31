@@ -1,8 +1,8 @@
 #include "ReacomaSlider.h"
-#include "IPlugParameter.h" // For GetParam()->GetDisplayForHost()
-#include "IGraphics.h"       // For GetUI()->CreateTextEntry()
-#include "IGraphicsConstants.h" // For colors like COLOR_GRAY, etc.
-#include "IPlugUtilities.h"   // For Clip, Lerp
+#include "IPlugParameter.h"
+#include "IGraphics.h.h"
+#include "IGraphicsConstants.h"
+#include "IPlugUtilities.h"
 
 #include <cmath>
 #include <algorithm>
@@ -10,7 +10,6 @@
 namespace iplug {
 namespace igraphics {
 
-// Define default colors if they are not globally accessible or part of a theme
 const IColor SWISS_TRACK_BG_COLOR_DEFAULT = COLOR_LIGHT_GRAY.WithOpacity(0.5f);
 const IColor SWISS_TRACK_FILL_COLOR_DEFAULT = COLOR_BLACK;
 const IColor SWISS_HANDLE_COLOR_BASE_DEFAULT = COLOR_RED;
@@ -40,8 +39,8 @@ ReacomaSlider::ReacomaSlider(const IRECT& bounds, int paramIdx)
       mReservedTextHeight(18.f)
 {
     SetTooltip("Reacoma Slider");
-    mValueTextStyle.mFGColor = mTrackFillColor; // Initial text color based on track fill
-    CalculateValueTextRect();                   // Initial calculation of text rect
+    mValueTextStyle.mFGColor = mTrackFillColor;
+    CalculateValueTextRect();
 }
 
 void ReacomaSlider::SetSwissColors(const IColor& trackBgColor, const IColor& trackFillColor, const IColor& handleColor, const IColor& hoverColor, const IColor& dragColor)
@@ -73,7 +72,6 @@ void ReacomaSlider::SetHandleThickness(float thickness)
     mHoverHandleThickness = thickness * defaultHoverFactor;
     mDragHandleThickness = thickness * defaultDragFactor;
 
-    // Update current handle thickness based on state (if not animating)
     if (!GetAnimationFunction()) {
         if (mIsDragging)
             mCurrentHandleThickness = mDragHandleThickness;
@@ -88,14 +86,14 @@ void ReacomaSlider::SetHandleThickness(float thickness)
 void ReacomaSlider::SetTrackFillColor(const IColor& color)
 {
     mTrackFillColor = color;
-    mValueTextStyle.mFGColor = color; // Update text color to match
+    mValueTextStyle.mFGColor = color;
     SetDirty(false);
 }
 
 void ReacomaSlider::CalculateValueTextRect()
 {
     if (!mDrawValue) {
-        mValueTextRect = IRECT(); // Empty rect if not drawing value
+        mValueTextRect = IRECT();
         return;
     }
 
@@ -139,8 +137,7 @@ void ReacomaSlider::Draw(IGraphics& g)
     g.DrawText(textStyle, displayStr.Get(), mValueTextRect);
   }
 
-  // Add this line to draw the border
-  g.DrawRect(COLOR_BLACK, mRECT); // You can change COLOR_BLACK to any color you prefer
+  g.DrawRect(COLOR_BLACK, mRECT);
 
   if (IsDisabled()) {
     g.FillRect(COLOR_GRAY.WithOpacity(0.5f), mRECT, &mBlend);
@@ -160,10 +157,10 @@ void ReacomaSlider::OnMouseDown(float x, float y, const IMouseMod& mod)
     }
 
     mIsDragging = true;
-    if (GetAnimationFunction()) { // Stop any hover/press animation when drag begins
+    if (GetAnimationFunction()) {
         SetAnimation(nullptr);
     }
-    AnimateState(true, true); // Set "dragging" visual state
+    AnimateState(true, true);
     UpdateValueFromPos(x, y);
 }
 
@@ -172,28 +169,27 @@ void ReacomaSlider::OnMouseDrag(float x, float y, float dX, float dY, const IMou
     if (mIsDragging) {
         if (GetAnimationFunction()) {
              SetAnimation(nullptr);
-             // Ensure visual state is correctly set for dragging if animation was interrupted
              mCurrentHandleThickness = mDragHandleThickness;
              mCurrentSliderHandleColor = mDragHandleColor;
         }
-        UpdateValueFromPos(x, y); // This calls SetValue which calls SetDirty(true)
-        SetDirty(true);          // Explicitly ask for redraw for this drag step
+        UpdateValueFromPos(x, y);
+        SetDirty(true);
     }
 }
 
 void ReacomaSlider::UpdateValueFromPos(float x, float y)
 {
     float val = 0.f;
-    IRECT interactiveArea = mRECT; // Start with full rect
+    IRECT interactiveArea = mRECT;
 
     if (mDrawValue) {
         interactiveArea.R -= mReservedTextWidth;
     }
-    
+
     if (interactiveArea.W() <= 0.f) return;
     float clampedX = std::max(interactiveArea.L, std::min(x, interactiveArea.R));
     val = (clampedX - interactiveArea.L) / interactiveArea.W();
-    
+
     val = Clip(val, 0.f, 1.f);
     SetValue(val);
 }
@@ -218,22 +214,21 @@ void ReacomaSlider::AnimateState(bool isOver, bool isDragging)
     if (visuallyAtTarget && mAnimationTargetState == newAnimationTargetState && !GetAnimationFunction()) {
       return;
     }
-    
-    mAnimationTargetState = newAnimationTargetState; // Set the new target
 
-    if(GetAnimationFunction()) SetAnimation(nullptr); // Stop existing animation
+    mAnimationTargetState = newAnimationTargetState;
+
+    if(GetAnimationFunction()) SetAnimation(nullptr);
 
     const float startThickness = mCurrentHandleThickness;
     const IColor startColor = mCurrentSliderHandleColor;
 
-    // If already at target (e.g., after drag animation ended but still dragging), don't animate, just ensure state
     if (startThickness == targetThickness && startColor.ToColorCode() == targetColor.ToColorCode()) {
         mCurrentHandleThickness = targetThickness;
         mCurrentSliderHandleColor = targetColor;
         SetDirty(false);
         return;
     }
-    
+
     SetAnimation([this, startThickness, targetThickness, startColor, targetColor](IControl* pCaller) {
         float progress = static_cast<float>(GetAnimationProgress());
         mCurrentHandleThickness = Lerp(startThickness, targetThickness, progress);
@@ -249,41 +244,37 @@ void ReacomaSlider::OnMouseOver(float x, float y, const IMouseMod& mod)
 {
     IControl::OnMouseOver(x, y, mod);
     if (!mIsDragging)
-        AnimateState(true, false); // Animate to hover state
+        AnimateState(true, false);
 }
 
 void ReacomaSlider::OnMouseOut()
 {
     IControl::OnMouseOut();
     if (!mIsDragging)
-        AnimateState(false, false); // Animate to non-hover (base) state
+        AnimateState(false, false);
 }
 
 void ReacomaSlider::OnMouseUp(float x, float y, const IMouseMod& mod)
 {
     if (mIsDragging) {
         mIsDragging = false;
-        // After dragging, determine if mouse is still over the control to transition to hover or base state
         AnimateState(mMouseIsOver, false);
     }
 }
 
 void ReacomaSlider::OnEndAnimation()
 {
-    // Snap to the final target values based on mAnimationTargetState
-    // This ensures precision after animation.
     if (mAnimationTargetState == EAnimationState::kDrag) {
         mCurrentHandleThickness = mDragHandleThickness;
         mCurrentSliderHandleColor = mDragHandleColor;
     } else if (mAnimationTargetState == EAnimationState::kHover) {
         mCurrentHandleThickness = mHoverHandleThickness;
         mCurrentSliderHandleColor = mMouseOverHandleColor;
-    } else { // kNone implies animation was to return to base state
+    } else {
         mCurrentHandleThickness = mBaseHandleThickness;
         mCurrentSliderHandleColor = mSliderHandleColor;
     }
-    // Don't reset mAnimationTargetState here, AnimateState will set it
-    IControl::OnEndAnimation(); // Important to call base to clear animation function
+    IControl::OnEndAnimation();
     SetDirty(false);
 }
 
@@ -293,9 +284,9 @@ void ReacomaSlider::OnMouseWheel(float x, float y, const IMouseMod& mod, float d
 
     double oldValue = GetValue();
     double step = GetParam()->GetStep();
-    double gearing = (step > 0.000001) ? step : 0.01; // Use param step if available, else default
+    double gearing = (step > 0.000001) ? step : 0.01;
 
-    if (mod.C || mod.S) // Fine adjustment with Ctrl/Shift
+    if (mod.C || mod.S)
         gearing *= 0.1;
 
     double newValue = oldValue + (static_cast<double>(d) * gearing);
@@ -303,5 +294,5 @@ void ReacomaSlider::OnMouseWheel(float x, float y, const IMouseMod& mod, float d
     SetDirty(true);
 }
 
-} // namespace igraphics
-} // namespace iplug
+}
+}

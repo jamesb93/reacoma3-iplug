@@ -1,11 +1,10 @@
-// ReacomaSlider.h
 #pragma once
 
 #include "IControl.h"
 #include "IGraphicsStructs.h"
 #include "IGraphicsConstants.h"
 #include "IGraphics.h"
-#include "IPlugUtilities.h" // For Lerp
+#include "IPlugUtilities.h"
 
 namespace iplug {
 namespace igraphics {
@@ -21,10 +20,8 @@ public:
 
     ReacomaSlider(const IRECT& bounds, int paramIdx);
 
-    // --- Drawing ---
     void Draw(IGraphics& g) override;
 
-    // --- Mouse Events ---
     void OnMouseDown(float x, float y, const IMouseMod& mod) override;
     void OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod) override;
     void OnMouseUp(float x, float y, const IMouseMod& mod) override;
@@ -33,9 +30,8 @@ public:
     void OnMouseWheel(float x, float y, const IMouseMod& mod, float d) override;
     void OnEndAnimation() override;
 
-    // --- Customization ---
     void SetSwissColors(const IColor& trackBgColor, const IColor& trackFillColor, const IColor& handleColor, const IColor& hoverColor, const IColor& dragColor);
-    void SetHandleThickness(float thickness); // Sets base, hover, and drag thickness based on factors
+    void SetHandleThickness(float thickness);
     void SetTrackThickness(float thickness) { mTrackThickness = thickness; SetDirty(false); }
     void SetTrackFillColor(const IColor& color);
     void SetTrackBackgroundColor(const IColor& color) { mTrackBackgroundColor = color; SetDirty(false); }
@@ -58,39 +54,34 @@ private:
     void AnimateState(bool isOver, bool isDragging);
     void CalculateValueTextRect();
 
-    // Colors
     IColor mTrackBackgroundColor;
     IColor mTrackFillColor;
     IColor mSliderHandleColor;
     IColor mMouseOverHandleColor;
     IColor mDragHandleColor;
-    IColor mBorderColor; // << NEW
+    IColor mBorderColor;
 
-    // Thicknesses
     float mBaseHandleThickness;
     float mTrackThickness;
     float mHoverHandleThickness;
     float mDragHandleThickness;
-    float mBorderThickness; // << NEW
+    float mBorderThickness;
 
-    // Current state
     float mCurrentHandleThickness;
     IColor mCurrentSliderHandleColor;
     bool mIsHorizontal;
     bool mIsDragging;
 
-    // Animation
     int mAnimationDurationMs;
     EAnimationState mAnimationTargetState;
 
-    // Value display
     IText mValueTextStyle;
     IRECT mValueTextRect;
     bool mDrawValue;
     float mValueTextPadding;
-    float mReservedTextWidth;  // Width reserved for text when horizontal
-    float mReservedTextHeight; // Height reserved for text when vertical
+    float mReservedTextWidth;
+    float mReservedTextHeight;
 };
 
-} // namespace igraphics
-} // namespace iplug
+}
+}

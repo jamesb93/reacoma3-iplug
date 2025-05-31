@@ -2,15 +2,13 @@
 
 #include "IControl.h"
 #include "IGraphicsStructs.h"
-#include "IGraphicsConstants.h" // For COLOR_BLACK, COLOR_RED etc.
+#include "IGraphicsConstants.h"
 #include "IGraphics.h"
 #include "IPlugUtilities.h"
 
 namespace iplug {
 namespace igraphics {
 
-// Define default styles directly in the header.
-// These are now global const objects within the iplug::igraphics namespace.
 const IColor REACOMA_BUTTON_BG_COLOR_DEFAULT = COLOR_WHITE;
 const IColor REACOMA_BUTTON_FG_COLOR_DEFAULT = COLOR_BLACK;
 const IColor REACOMA_BUTTON_PRESSED_COLOR_DEFAULT = COLOR_RED;
@@ -22,8 +20,8 @@ class ReacomaButton : public IButtonControlBase
 public:
   ReacomaButton(const IRECT& bounds,
                 const char* label,
-                IActionFunction actionFunction, // CORRECTED IDENTIFIER
-                const IColor&bgColor = REACOMA_BUTTON_BG_COLOR_DEFAULT, // Now uses const objects from this header
+                IActionFunction actionFunction,
+                const IColor&bgColor = REACOMA_BUTTON_BG_COLOR_DEFAULT,
                 const IColor&fgColor = REACOMA_BUTTON_FG_COLOR_DEFAULT,
                 const IColor&pressedColor = REACOMA_BUTTON_PRESSED_COLOR_DEFAULT,
                 const IColor&hoverColor = REACOMA_BUTTON_HOVER_COLOR_DEFAULT,
@@ -64,5 +62,5 @@ private:
   int  mAnimationDurationMs;
 };
 
-} // namespace igraphics
-} // namespace iplug
+}
+}

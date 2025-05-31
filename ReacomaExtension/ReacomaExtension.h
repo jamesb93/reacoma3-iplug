@@ -1,13 +1,11 @@
-// ReacomaExtension.h
 #pragma once
 
 #include "ReaperExt_include_in_plug_hdr.h"
 #include "reaper_plugin.h"
-#include <memory> // For std::unique_ptr
+#include <memory>
 #include "Algorithms/NoveltySliceAlgorithm.h"
 #include "Algorithms/HPSSAlgorithm.h"
 
-// Forward declare IAlgorithm
 class IAlgorithm;
 
 using namespace iplug;
@@ -20,18 +18,15 @@ public:
     
     enum EParams
     {
-        kParamAlgorithmChoice = 0,  // This declares kParamAlgorithmChoice as an integer (0)
-        // If ReacomaExtension had other top-level parameters, they would go here.
-        kNumOwnParams               // A counter for ReacomaExtension's own parameters.
-                                    // This will be useful if you add more later, and for
-                                    // algorithm parameter registration to start after these.
+        kParamAlgorithmChoice = 0,
+        kNumOwnParams
     };
     
     enum EAlgorithmChoice {
         kNoveltySlice = 0,
         kHPSS,
-        kNumAlgorithmChoices // Keep this last for counting
-    };
+        kNumAlgorithmChoices
+    }
         
     ReacomaExtension(reaper_plugin_info_t* pRec);
     void OnUIClose() override;
@@ -59,7 +54,7 @@ private:
     std::vector<MediaItem*> mSelectedItems;
     bool mIsProcessingAsync = false;
 
-    IAlgorithm* mCurrentActiveAlgorithmPtr = nullptr; // Points to the active algorithm instance
+    IAlgorithm* mCurrentActiveAlgorithmPtr = nullptr;
     EAlgorithmChoice mCurrentAlgorithmChoice = kNoveltySlice;
     bool mForceParameterRedraw = true;
 };

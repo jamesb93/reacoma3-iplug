@@ -1,4 +1,3 @@
-// ReacomaSegmented.cpp
 #include "ReacomaSegmented.h"
 
 ReacomaSegmented::ReacomaSegmented(const IRECT& bounds, int paramIdx, const std::vector<std::string>& segmentLabels,
@@ -31,33 +30,24 @@ ReacomaSegmented::ReacomaSegmented(const IRECT& bounds, int paramIdx, const std:
             IColor fillColor = (i == currentIdx) ? mActiveColor : mInactiveColor;
             
             if (mSegmentLabels.size() == 1) {
-                // Single segment keeps its original rounded rectangle drawing
                 g.FillRoundRect(fillColor, segmentRect, mCornerRadius);
                 g.DrawRoundRect(mBorderColor, segmentRect, mCornerRadius);
-            } else if (i == 0) { // First segment (now rectangular)
-                g.FillRect(fillColor, segmentRect); // Fill the entire segment
-                
-                // Draw Borders for the first segment (rectangular)
-                // g.DrawArc(mBorderColor, segmentRect.L + mCornerRadius, segmentRect.MH(), mCornerRadius, 90.f, 270.f); // Left round border - REMOVED
-                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.T, segmentRect.R, segmentRect.T); // Top border (full width)
-                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.B, segmentRect.R, segmentRect.B); // Bottom border (full width)
-                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.T, segmentRect.L, segmentRect.B); // Left border
-            } else if (i == mSegmentLabels.size() - 1) { // Last segment (now rectangular)
-                g.FillRect(fillColor, segmentRect); // Fill the entire segment
-
-                // Draw Borders for the last segment (rectangular)
-                // g.DrawArc(mBorderColor, segmentRect.R - mCornerRadius, segmentRect.MH(), mCornerRadius, -90.f, 90.f); // Right round border - REMOVED
-                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.T, segmentRect.R, segmentRect.T); // Top border (full width)
-                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.B, segmentRect.R, segmentRect.B); // Bottom border (full width)
-                g.DrawLine(mBorderColor, segmentRect.R, segmentRect.T, segmentRect.R, segmentRect.B); // Right border
-            } else { // Middle segments (already rectangular)
+            } else if (i == 0) {
                 g.FillRect(fillColor, segmentRect);
-                // Draw top and bottom borders for middle segments
-                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.T, segmentRect.R, segmentRect.T); // Top border
-                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.B, segmentRect.R, segmentRect.B); // Bottom border
+                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.T, segmentRect.R, segmentRect.T);
+                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.B, segmentRect.R, segmentRect.B);
+                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.T, segmentRect.L, segmentRect.B);
+            } else if (i == mSegmentLabels.size() - 1) {
+                g.FillRect(fillColor, segmentRect);
+                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.T, segmentRect.R, segmentRect.T);
+                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.B, segmentRect.R, segmentRect.B);
+                g.DrawLine(mBorderColor, segmentRect.R, segmentRect.T, segmentRect.R, segmentRect.B);
+            } else {
+                g.FillRect(fillColor, segmentRect);
+                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.T, segmentRect.R, segmentRect.T);
+                g.DrawLine(mBorderColor, segmentRect.L, segmentRect.B, segmentRect.R, segmentRect.B);
             }
             
-            // Draw separator line (except for the last one)
             if (i < mSegmentLabels.size() - 1)
             {
                 g.DrawLine(mBorderColor, segmentRect.R, segmentRect.T, segmentRect.R, segmentRect.B);
@@ -74,7 +64,7 @@ ReacomaSegmented::ReacomaSegmented(const IRECT& bounds, int paramIdx, const std:
         {
             if (mSegmentLabels.size() > 1) {
                 SetValue((double)clickedSegment / (double)(mSegmentLabels.size() - 1));
-            } else { // Single segment, always normalized to 0
+            } else {
                 SetValue(0.0);
             }
             SetDirty(true);
