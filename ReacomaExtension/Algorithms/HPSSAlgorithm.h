@@ -1,7 +1,10 @@
 #pragma once
 #include "IAlgorithm.h"
-#include <memory>
 #include <vector>
+#include "../../dependencies/flucoma-core/include/flucoma/clients/rt/HPSSClient.hpp"
+#include "../../dependencies/flucoma-core/include/flucoma/clients/common/FluidContext.hpp"
+
+using namespace fluid::client;
 
 class HPSSAlgorithm : public IAlgorithm {
 public:
@@ -10,15 +13,6 @@ public:
         kPercFilterSize,
         kNumParams
     };
-
-    // enum EAlgorithmOptions {
-    //     kSpectrum = 0,
-    //     kMFCC,
-    //     kChroma,
-    //     kPitch,
-    //     kLoudness,
-    //     kNumAlgorithmOptions
-    // };
 
     HPSSAlgorithm(ReacomaExtension* apiProvider);
     ~HPSSAlgorithm() override;
@@ -29,6 +23,7 @@ public:
     int GetNumAlgorithmParams() const override;
 
 private:
-    struct Impl;
-    std::unique_ptr<Impl> mImpl;
+    FluidContext mContext;
+    NRTThreadedHPSSClient::ParamSetType mParams;
+    NRTThreadedHPSSClient mClient;
 };

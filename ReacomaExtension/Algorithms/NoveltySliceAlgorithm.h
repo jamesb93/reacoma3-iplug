@@ -1,12 +1,13 @@
-// NoveltySliceAlgorithm.h
 #pragma once
-#include "IAlgorithm.h" // Include the new abstract base class
-#include <memory>       // For std::unique_ptr
+#include "IAlgorithm.h"
 #include <vector>
+#include "../../dependencies/flucoma-core/include/flucoma/clients/rt/NoveltySliceClient.hpp"
+#include "../../dependencies/flucoma-core/include/flucoma/clients/common/FluidContext.hpp"
 
-class NoveltySliceAlgorithm : public IAlgorithm { // Inherit from IAlgorithm
+using namespace fluid::client;
+
+class NoveltySliceAlgorithm : public IAlgorithm {
 public:
-    // Enum for algorithm-specific parameters
     enum Params {
         kThreshold = 0,
         kKernelSize,
@@ -34,6 +35,7 @@ public:
     int GetNumAlgorithmParams() const override;
 
 private:
-    struct Impl;
-    std::unique_ptr<Impl> mImpl;
+    FluidContext mContext;
+    NRTThreadingNoveltySliceClient::ParamSetType mParams;
+    NRTThreadingNoveltySliceClient mClient;
 };
