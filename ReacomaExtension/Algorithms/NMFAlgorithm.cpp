@@ -15,7 +15,6 @@ NMFAlgorithm::NMFAlgorithm(ReacomaExtension* apiProvider)
       mParams{NRTThreadedNMFClient::getParameterDescriptors(), FluidDefaultAllocator()},
       mClient{mParams, mContext}
 {
-//    RegisterParameters();
 }
 
 NMFAlgorithm::~NMFAlgorithm() = default;
