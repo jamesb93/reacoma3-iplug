@@ -4,6 +4,7 @@
 #include "IPlugParameter.h" // Required for IParam
 #include "../VectorBufferAdaptor.h" // Ensure this path is correct
 #include "InMemoryDecoder.h"
+#include <filesystem>
 
 using namespace fluid;
 using namespace client;
@@ -119,15 +120,15 @@ bool HPSSAlgorithm::ProcessItem(MediaItem* item) {
         return false;
     }
     
-    AddOutputToTake(item, /*take, */harmOutputBuffer, 1, sampleRate);
-    AddOutputToTake(item, /*take, */percOutputBuffer, 1, sampleRate);
+    AddOutputToTake(item, /*take, */harmOutputBuffer, 1, sampleRate, "harmonic");
+    AddOutputToTake(item, /*take, */percOutputBuffer, 1, sampleRate, "percussive");
     
     UpdateTimeline();
     
     return true;
 }
 
-void HPSSAlgorithm::AddOutputToTake(MediaItem* item, BufferT::type output, int numChannels, int sampleRate) {
+void HPSSAlgorithm::AddOutputToTake(MediaItem* item, BufferT::type output, int numChannels, int sampleRate, const std::string& suffix) {
     fluid::client::BufferAdaptor::ReadAccess bufferReader(output.get());
     auto sourceData = bufferReader.samps(0).data();
     
@@ -136,13 +137,67 @@ void HPSSAlgorithm::AddOutputToTake(MediaItem* item, BufferT::type output, int n
     
     std::transform(sourceData, sourceData + bufferReader.numFrames(), audioVector.begin(),
                        [](float f) { return static_cast<ReaSample>(f); });
+
+    char projectPath[4096];
+    GetProjectPath(projectPath, sizeof(projectPath));
     
-    ISimpleMediaDecoder* decoder = new InMemoryDecoder(std::move(audioVector), numChannels, sampleRate);
+    char originalFilePathCStr[4096] = ""; // Initialize to empty string
+    auto activeTake = GetActiveTake(item);
+    if (activeTake) {
+        auto takeSource = GetMediaItemTake_Source(activeTake);
+        if (takeSource) {
+            auto srcParent = GetMediaSourceParent(takeSource);
+            // Get the filename from the ultimate parent source if it exists
+            GetMediaSourceFileName(srcParent ? srcParent : takeSource, originalFilePathCStr, sizeof(originalFilePathCStr));
+        }
+    }
     
-    PCM_source* newSource = PCM_Source_CreateFromSimple(decoder, nullptr);
-    auto res = PCM_Source_BuildPeaks(newSource, 0); // TODO: docs say to call this with (src, 1) if this fails. We don't bother with this ATM.
-    MediaItem_Take* newTake = AddTakeToMediaItem(item);
-    GetSetMediaItemTakeInfo(newTake, "P_SOURCE", newSource);
+    std::filesystem::path outputFilePath;
+    std::string takeName;
+    
+    std::filesystem::path originalPath(originalFilePathCStr);
+
+    auto parentDir = originalPath.parent_path();
+    auto stem = originalPath.stem().string();
+    auto extension = originalPath.extension().string();
+
+    takeName = stem + "_" + suffix;
+    std::string newFilename = takeName + ".wav";
+    outputFilePath = parentDir / newFilename;
+
+    double* audioDataPtr = audioVector.data();
+    double** audioDataPtrArray = &audioDataPtr;
+    long numFrames = audioVector.size();
+    
+    struct WavConfig {
+        char fourcc[4];
+        int bit_depth;
+    };
+    
+    WavConfig config;
+    memcpy(config.fourcc, "evaw", 4); // The required FOURCC for WAVE, in little-endian byte order
+    config.bit_depth = 32;
+
+    PCM_sink* sink = PCM_Sink_CreateEx(
+        nullptr,
+        outputFilePath.string().c_str(),
+        (const char*)&config,
+        sizeof(config),
+        numChannels,
+        sampleRate,
+        true
+    );
+    sink->WriteDoubles(audioDataPtrArray, numFrames, numChannels, 0, 1);
+    delete sink;
+    
+    PCM_source* newSource = PCM_Source_CreateFromFile(outputFilePath.c_str());
+    if (newSource) {
+        MediaItem_Take* take = AddTakeToMediaItem(item);
+        if (take) {
+            GetSetMediaItemTakeInfo(take, "P_SOURCE", newSource);
+            GetSetMediaItemTakeInfo(take, "P_NAME", (char*)takeName.c_str());
+        }
+    }
 }
 
 const char* HPSSAlgorithm::GetName() const {

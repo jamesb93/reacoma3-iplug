@@ -57,6 +57,12 @@ ReaperExtBase(pRec)
     IMPAPI(AddTakeToMediaItem);
     IMPAPI(GetSetMediaItemTakeInfo);
     IMPAPI(PCM_Source_BuildPeaks);
+    IMPAPI(GetProjectPath);
+    IMPAPI(PCM_Sink_Create);
+    IMPAPI(PCM_Sink_CreateEx);
+    IMPAPI(PCM_Source_CreateFromFile);
+    IMPAPI(GetMediaSourceParent);
+    IMPAPI(GetMediaSourceFileName);
 
     mMakeGraphicsFunc = [&]() {
         return MakeGraphics(*this, PLUG_WIDTH, PLUG_HEIGHT, PLUG_FPS);

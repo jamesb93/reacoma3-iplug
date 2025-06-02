@@ -21,7 +21,7 @@ public:
     const char* GetName() const override;
     void RegisterParameters() override;
     int GetNumAlgorithmParams() const override;
-    void AddOutputToTake(MediaItem* item, BufferT::type output, int numChannels, int sampleRate);
+    void AddOutputToTake(MediaItem* item, BufferT::type output, int numChannels, int sampleRate, const std::string& suffix);
 
 private:
     FluidContext mContext;
