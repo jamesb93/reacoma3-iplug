@@ -16,10 +16,6 @@
 #include "ReacomaButton.h"
 #include "ReacomaSegmented.h"
 
-//#include "Algorithms/NoveltySliceAlgorithm.h"
-//#include "Algorithms/HPSSAlgorithm.h"
-//#include "Algorithms/NMFAlgorithm.h"
-
 template <ReacomaExtension::Mode M>
 struct ProcessAction
 {
