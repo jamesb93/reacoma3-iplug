@@ -58,7 +58,7 @@
       </MacroExpansion>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "$(SRCROOT)/../ReacomaExtension.RPP"
+            argument = "$(SRCROOT)/../TestProject/ReacomaExtension.RPP"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
