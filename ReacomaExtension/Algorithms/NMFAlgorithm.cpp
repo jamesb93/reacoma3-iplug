@@ -1,8 +1,8 @@
-#include "NMFAlgorithm.h" // Includes IAlgorithm.h implicitly
-#include "ReacomaExtension.h"       // Include the full definition of ReacomaExtension
+#include "NMFAlgorithm.h"
+#include "ReacomaExtension.h"
 #include "reaper_plugin_functions.h"
-#include "IPlugParameter.h" // Required for IParam
-#include "../VectorBufferAdaptor.h" // Ensure this path is correct
+#include "IPlugParameter.h"
+#include "../VectorBufferAdaptor.h"
 #include "InMemoryDecoder.h"
 #include <filesystem>
 

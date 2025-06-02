@@ -1,8 +1,8 @@
-#include "HPSSAlgorithm.h" // Includes IAlgorithm.h implicitly
-#include "ReacomaExtension.h"       // Include the full definition of ReacomaExtension
+#include "HPSSAlgorithm.h"
+#include "ReacomaExtension.h"
 #include "reaper_plugin_functions.h"
-#include "IPlugParameter.h" // Required for IParam
-#include "../VectorBufferAdaptor.h" // Ensure this path is correct
+#include "IPlugParameter.h"
+#include "../VectorBufferAdaptor.h"
 #include "InMemoryDecoder.h"
 #include <filesystem>
 
@@ -22,16 +22,15 @@ HPSSAlgorithm::~HPSSAlgorithm() = default;
 void HPSSAlgorithm::RegisterParameters() {
     mBaseParamIdx = mApiProvider->NParams();
 
-    // Content from former registerParametersImpl
     for (int i = 0; i < HPSSAlgorithm::kNumParams; ++i) {
         mApiProvider->AddParam();
     }
 
     mApiProvider->GetParam(mBaseParamIdx + HPSSAlgorithm::kHarmFilterSize)
-        ->InitInt("Harmonic Filter Size", 17, 3, 51); // Must be odd
+        ->InitInt("Harmonic Filter Size", 17, 3, 51);
 
     mApiProvider->GetParam(mBaseParamIdx + HPSSAlgorithm::kPercFilterSize)
-        ->InitInt("Percussive Filter Size", 31, 3, 51); // Must be odd
+        ->InitInt("Percussive Filter Size", 31, 3, 51);
 }
 
 bool HPSSAlgorithm::ProcessItem(MediaItem* item) {
@@ -50,49 +49,35 @@ bool HPSSAlgorithm::ProcessItem(MediaItem* item) {
     double takeOffset = GetMediaItemTakeInfo_Value(take, "D_STARTOFFS");
     
     double sourceDuration = source->GetLength();
-    double effectiveTakeDuration = itemLength * playrate; // This is how long the take *sounds* due to playrate
+    double effectiveTakeDuration = itemLength * playrate;
     double actualDurationToProcess = std::min(effectiveTakeDuration, sourceDuration - takeOffset);
 
+    int frameCount = static_cast<int>(sampleRate * actualDurationToProcess);
+    if (frameCount <= 0 || numChannels <= 0) return false;
 
-    int frameCount = static_cast<int>(sampleRate * actualDurationToProcess); // Renamed outSize to frameCount
-    if (frameCount <= 0) return false;
-
-    std::vector<double> inputAudioSamplesAsDouble;
-    inputAudioSamplesAsDouble.resize(frameCount);
+    std::vector<double> allChannelsAsDouble(frameCount * numChannels);
     
     PCM_source_transfer_t transfer{};
     transfer.time_s = takeOffset;
     transfer.samplerate = static_cast<double>(sampleRate);
-    transfer.nch = 1; // HPSS typically processes mono, or per-channel
+    transfer.nch = numChannels;
     transfer.length = frameCount;
-    transfer.samples = inputAudioSamplesAsDouble.data();
-
-    if (numChannels > 0) {
-        source->GetSamples(&transfer);
-    } else {
-        return false;
-    }
-
-    std::vector<float> inputAudioSamplesAsFloat(frameCount);
-    std::transform(
-        inputAudioSamplesAsDouble.begin(),
-        inputAudioSamplesAsDouble.end(),
-        inputAudioSamplesAsFloat.begin(),
-        [](double d) { return static_cast<float>(d); });
+    transfer.samples = allChannelsAsDouble.data();
+    source->GetSamples(&transfer);
     
-    // Input buffer for FluCoMa
-    auto inputBuffer = InputBufferT::type(new fluid::VectorBufferAdaptor(inputAudioSamplesAsFloat, 1, frameCount, sampleRate));
+    std::vector<float> allChannelsAsFloat(allChannelsAsDouble.begin(), allChannelsAsDouble.end());
+    
+    auto harmFilterSizeParam = mApiProvider->GetParam(mBaseParamIdx + HPSSAlgorithm::kHarmFilterSize)->Value();
+    auto percFilterSizeParam = mApiProvider->GetParam(mBaseParamIdx + HPSSAlgorithm::kPercFilterSize)->Value();
+    
+    auto inputBuffer = InputBufferT::type(new fluid::VectorBufferAdaptor(allChannelsAsFloat, numChannels, frameCount, sampleRate));
 
-    // Output buffers for harmonic and percussive components
     auto harmMemoryBuffer = std::make_shared<MemoryBufferAdaptor>(1, frameCount, sampleRate);
     auto percMemoryBuffer = std::make_shared<MemoryBufferAdaptor>(1, frameCount, sampleRate);
     auto harmOutputBuffer = fluid::client::BufferT::type(harmMemoryBuffer);
     auto percOutputBuffer = fluid::client::BufferT::type(percMemoryBuffer);
     
-    auto harmFilterSizeParam = mApiProvider->GetParam(mBaseParamIdx + HPSSAlgorithm::kHarmFilterSize)->Value();
-    auto percFilterSizeParam = mApiProvider->GetParam(mBaseParamIdx + HPSSAlgorithm::kPercFilterSize)->Value();
 
-    // Ensure filter sizes are odd
     if (static_cast<int>(harmFilterSizeParam) % 2 == 0) harmFilterSizeParam +=1;
     if (static_cast<int>(percFilterSizeParam) % 2 == 0) percFilterSizeParam +=1;
 
@@ -103,25 +88,25 @@ bool HPSSAlgorithm::ProcessItem(MediaItem* item) {
     mParams.template set<4>(LongT::type(-1), nullptr);           // numFrames
     mParams.template set<5>(std::move(harmOutputBuffer), nullptr); // harmonic
     mParams.template set<6>(std::move(percOutputBuffer), nullptr); // percussive
-    mParams.template set<7>(nullptr, nullptr);                   // residual (optional, not used here)
-    mParams.template set<8>(LongRuntimeMaxParam(harmFilterSizeParam, harmFilterSizeParam), nullptr);  // harmFilterSize
-    mParams.template set<9>(LongRuntimeMaxParam(percFilterSizeParam, percFilterSizeParam), nullptr);  // percFilterSize
-    mParams.template set<10>(LongT::type(0), nullptr);           // mask (0 = binary, 1 = soft)
-    mParams.template set<11>(FloatPairsArrayT::type(0,1,1,1), nullptr); // harmSlope
-    mParams.template set<12>(FloatPairsArrayT::type(1,0,1,1), nullptr); // percSlope
-    mParams.template set<13>(fluid::client::FFTParams(1024, -1, -1), nullptr); // fftsettings
+    mParams.template set<7>(nullptr, nullptr);                   
+    mParams.template set<8>(LongRuntimeMaxParam(harmFilterSizeParam, harmFilterSizeParam), nullptr);
+    mParams.template set<9>(LongRuntimeMaxParam(percFilterSizeParam, percFilterSizeParam), nullptr); 
+    mParams.template set<10>(LongT::type(0), nullptr);           
+    mParams.template set<11>(FloatPairsArrayT::type(0,1,1,1), nullptr);
+    mParams.template set<12>(FloatPairsArrayT::type(1,0,1,1), nullptr);
+    mParams.template set<13>(fluid::client::FFTParams(1024, -1, -1), nullptr);
     
     mClient = NRTThreadedHPSSClient(mParams, mContext);
     mClient.setSynchronous(true);
-    mClient.enqueue(mParams); // Enqueue potentially updated params
+    mClient.enqueue(mParams);
     Result result = mClient.process();
 
     if (!result.ok()) {
         return false;
     }
     
-    AddOutputToTake(item, /*take, */harmOutputBuffer, 1, sampleRate, "harmonic");
-    AddOutputToTake(item, /*take, */percOutputBuffer, 1, sampleRate, "percussive");
+    AddOutputToTake(item, harmOutputBuffer, numChannels, sampleRate, "harmonic");
+    AddOutputToTake(item, percOutputBuffer, numChannels, sampleRate, "percussive");
     
     UpdateTimeline();
     
@@ -130,24 +115,33 @@ bool HPSSAlgorithm::ProcessItem(MediaItem* item) {
 
 void HPSSAlgorithm::AddOutputToTake(MediaItem* item, BufferT::type output, int numChannels, int sampleRate, const std::string& suffix) {
     fluid::client::BufferAdaptor::ReadAccess bufferReader(output.get());
-    auto sourceData = bufferReader.samps(0).data();
+    auto numFrames = bufferReader.numFrames();
+    auto numChans = bufferReader.numChans();
     
     std::vector<ReaSample> audioVector;
-    audioVector.resize(bufferReader.numFrames());
-    
-    std::transform(sourceData, sourceData + bufferReader.numFrames(), audioVector.begin(),
-                       [](float f) { return static_cast<ReaSample>(f); });
+    audioVector.resize(bufferReader.numChans() * bufferReader.numFrames());
+
+    std::vector<std::vector<ReaSample>> channelData(numChans, std::vector<ReaSample>(numFrames));
+    std::vector<ReaSample*> pointerArray(numChans);
+
+    const float* sourceData = bufferReader.allFrames().data();
+
+    for (int i = 0; i < numChans; ++i) {
+        for (int j = 0; j < numFrames; ++j) {
+            channelData[i][j] = static_cast<ReaSample>(sourceData[j * numChans + i]);
+        }
+        pointerArray[i] = channelData[i].data();
+    }
 
     char projectPath[4096];
     GetProjectPath(projectPath, sizeof(projectPath));
     
-    char originalFilePathCStr[4096] = ""; // Initialize to empty string
+    char originalFilePathCStr[4096] = "";
     auto activeTake = GetActiveTake(item);
     if (activeTake) {
         auto takeSource = GetMediaItemTake_Source(activeTake);
         if (takeSource) {
             auto srcParent = GetMediaSourceParent(takeSource);
-            // Get the filename from the ultimate parent source if it exists
             GetMediaSourceFileName(srcParent ? srcParent : takeSource, originalFilePathCStr, sizeof(originalFilePathCStr));
         }
     }
@@ -165,17 +159,13 @@ void HPSSAlgorithm::AddOutputToTake(MediaItem* item, BufferT::type output, int n
     std::string newFilename = takeName + ".wav";
     outputFilePath = parentDir / newFilename;
 
-    double* audioDataPtr = audioVector.data();
-    double** audioDataPtrArray = &audioDataPtr;
-    long numFrames = audioVector.size();
-    
     struct WavConfig {
         char fourcc[4];
         int bit_depth;
     };
     
     WavConfig config;
-    memcpy(config.fourcc, "evaw", 4); // The required FOURCC for WAVE, in little-endian byte order
+    memcpy(config.fourcc, "evaw", 4);
     config.bit_depth = 32;
 
     PCM_sink* sink = PCM_Sink_CreateEx(
@@ -183,11 +173,11 @@ void HPSSAlgorithm::AddOutputToTake(MediaItem* item, BufferT::type output, int n
         outputFilePath.string().c_str(),
         (const char*)&config,
         sizeof(config),
-        numChannels,
+        numChans,
         sampleRate,
         true
     );
-    sink->WriteDoubles(audioDataPtrArray, numFrames, numChannels, 0, 1);
+    sink->WriteDoubles(pointerArray.data(), numFrames, numChans, 0, 1);
     delete sink;
     
     PCM_source* newSource = PCM_Source_CreateFromFile(outputFilePath.c_str());
