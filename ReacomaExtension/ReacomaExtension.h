@@ -5,6 +5,7 @@
 #include <memory>
 #include "Algorithms/NoveltySliceAlgorithm.h"
 #include "Algorithms/HPSSAlgorithm.h"
+#include "Algorithms/NMFAlgorithm.h"
 
 class IAlgorithm;
 
@@ -25,6 +26,7 @@ public:
     enum EAlgorithmChoice {
         kNoveltySlice = 0,
         kHPSS,
+        kNMF,
         kNumAlgorithmChoices
     };
         
@@ -37,6 +39,8 @@ public:
 private:
     std::unique_ptr<NoveltySliceAlgorithm> mNoveltyAlgorithm;
     std::unique_ptr<HPSSAlgorithm> mHPSSAlgorithm;
+    std::unique_ptr<NMFAlgorithm> mNMFAlgorithm;
+    
     void OnParamChangeUI(int paramIdx, EParamSource source) override;
     void OnIdle() override;
     bool UpdateSelectedItems(bool force);

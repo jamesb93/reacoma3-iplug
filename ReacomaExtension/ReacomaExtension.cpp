@@ -10,13 +10,15 @@
 #include "ibmplexmono.hpp"
 #include "roboto.hpp"
 #include "IControls.h"
-#include "Algorithms/NoveltySliceAlgorithm.h"
-#include "Algorithms/HPSSAlgorithm.h"
 #include "IAlgorithm.h"
 #include "IPlugParameter.h"
 #include "ReacomaSlider.h"
 #include "ReacomaButton.h"
 #include "ReacomaSegmented.h"
+
+//#include "Algorithms/NoveltySliceAlgorithm.h"
+//#include "Algorithms/HPSSAlgorithm.h"
+//#include "Algorithms/NMFAlgorithm.h"
 
 template <ReacomaExtension::Mode M>
 struct ProcessAction
@@ -71,19 +73,22 @@ ReaperExtBase(pRec)
     RegisterAction("Reacoma: Show/Hide UI", [&]() { ShowHideMainWindow(); mGUIToggle = !mGUIToggle; }, true, &mGUIToggle);
 
     AddParam();
-    GetParam(kParamAlgorithmChoice)->InitEnum("Algorithm", kNoveltySlice, kNumAlgorithmChoices - 1);
+    GetParam(kParamAlgorithmChoice)->InitEnum("Algorithm", kNoveltySlice, kNumAlgorithmChoices);
     GetParam(kParamAlgorithmChoice)->SetDisplayText(kNoveltySlice, "Novelty Slice");
     GetParam(kParamAlgorithmChoice)->SetDisplayText(kHPSS, "HPSS");
+    GetParam(kParamAlgorithmChoice)->SetDisplayText(kNMF, "NMF");
 
     mNoveltyAlgorithm = std::make_unique<NoveltySliceAlgorithm>(this);
     mNoveltyAlgorithm->RegisterParameters();
 
     mHPSSAlgorithm = std::make_unique<HPSSAlgorithm>(this);
     mHPSSAlgorithm->RegisterParameters();
+    
+    mNMFAlgorithm = std::make_unique<NMFAlgorithm>(this);
+    mNMFAlgorithm->RegisterParameters();
 
     SetAlgorithmChoice(kNoveltySlice, false);
 
-    // mLayoutFunc now simply calls the new SetupUI function
     mLayoutFunc = [&](IGraphics* pGraphics) {
         SetupUI(pGraphics);
     };
@@ -94,7 +99,6 @@ void ReacomaExtension::OnUIClose()
     mGUIToggle = 0;
 }
 
-// New function to encapsulate the UI layout logic
 void ReacomaExtension::SetupUI(IGraphics* pGraphics)
 {
     mNeedsLayout = false;
@@ -152,50 +156,48 @@ void ReacomaExtension::SetupUI(IGraphics* pGraphics)
         pGraphics->AttachControl(new ReacomaSegmented(algorithmSelectorRect, kParamAlgorithmChoice, algoLabels, segmentedTextStyle, activeColor, inactiveColor));
     }
 
-    if (mCurrentActiveAlgorithmPtr)
+    if (!mCurrentActiveAlgorithmPtr) { return; }
+    int numAlgoParams = mCurrentActiveAlgorithmPtr->GetNumAlgorithmParams();
+    for (int i = 0; i < numAlgoParams; ++i)
     {
-        int numAlgoParams = mCurrentActiveAlgorithmPtr->GetNumAlgorithmParams();
-        for (int i = 0; i < numAlgoParams; ++i)
+        if (currentLayoutBounds.H() < controlVisualHeight) break;
+
+        int globalParamIdx = mCurrentActiveAlgorithmPtr->GetGlobalParamIdx(i);
+        IParam* pParam = GetParam(globalParamIdx);
+
+        IRECT controlCellRect = currentLayoutBounds.GetFromTop(controlVisualHeight);
+
+        IParam::EParamType type = pParam->Type();
+        auto paramName = pParam->GetName();
+
+        if (type == IParam::EParamType::kTypeDouble || (type == IParam::EParamType::kTypeInt && pParam->GetMax() >= pParam->GetMin()))
         {
-            if (currentLayoutBounds.H() < controlVisualHeight) break;
+            IRECT sliderBounds = controlCellRect.GetVPadded(-5.f);
+            if (sliderBounds.H() < 10.f) sliderBounds.B = sliderBounds.T + 10.f;
 
-            int globalParamIdx = mCurrentActiveAlgorithmPtr->GetGlobalParamIdx(i);
-            IParam* pParam = GetParam(globalParamIdx);
-
-            IRECT controlCellRect = currentLayoutBounds.GetFromTop(controlVisualHeight);
-
-            IParam::EParamType type = pParam->Type();
-            auto paramName = pParam->GetName();
-
-            if (type == IParam::EParamType::kTypeDouble || (type == IParam::EParamType::kTypeInt && pParam->GetMax() >= pParam->GetMin()))
-            {
-                IRECT sliderBounds = controlCellRect.GetVPadded(-5.f);
-                if (sliderBounds.H() < 10.f) sliderBounds.B = sliderBounds.T + 10.f;
-
-                auto* slider = new ReacomaSlider(sliderBounds, globalParamIdx);
-                slider->SetTrackThickness(1.0f);
-                slider->SetHandleThickness(10.0f);
-                slider->SetDrawValue(true);
-                slider->SetTooltip(paramName);
-                pGraphics->AttachControl(slider);
-            }
-            else if (type == IParam::EParamType::kTypeEnum && pParam->GetMax() > 0)
-            {
-                std::vector<std::string> labels;
-                for (int val = 0; val <= pParam->GetMax(); ++val)
-                {
-                    const char* displayText = pParam->GetDisplayTextAtIdx(val);
-                    labels.push_back(displayText);
-                }
-
-                if (!labels.empty())
-                {
-                    pGraphics->AttachControl(new ReacomaSegmented(controlCellRect, globalParamIdx, labels, segmentedTextStyle, activeColor, inactiveColor));
-                }
-            }
-
-            currentLayoutBounds.T = controlCellRect.B + verticalSpacing;
+            auto* slider = new ReacomaSlider(sliderBounds, globalParamIdx);
+            slider->SetTrackThickness(1.0f);
+            slider->SetHandleThickness(10.0f);
+            slider->SetDrawValue(true);
+            slider->SetTooltip(paramName);
+            pGraphics->AttachControl(slider);
         }
+        else if (type == IParam::EParamType::kTypeEnum && pParam->GetMax() > 0)
+        {
+            std::vector<std::string> labels;
+            for (int val = 0; val <= pParam->GetMax(); ++val)
+            {
+                const char* displayText = pParam->GetDisplayTextAtIdx(val);
+                labels.push_back(displayText);
+            }
+
+            if (!labels.empty())
+            {
+                pGraphics->AttachControl(new ReacomaSegmented(controlCellRect, globalParamIdx, labels, segmentedTextStyle, activeColor, inactiveColor));
+            }
+        }
+
+        currentLayoutBounds.T = controlCellRect.B + verticalSpacing;
     }
 
     mainContentArea.T = currentLayoutBounds.T;
@@ -329,6 +331,9 @@ void ReacomaExtension::SetAlgorithmChoice(EAlgorithmChoice choice, bool triggerU
             break;
         case kHPSS:
             mCurrentActiveAlgorithmPtr = mHPSSAlgorithm.get();
+            break;
+        case kNMF:
+            mCurrentActiveAlgorithmPtr = mNMFAlgorithm.get();
             break;
         default:
             mCurrentActiveAlgorithmPtr = nullptr;
