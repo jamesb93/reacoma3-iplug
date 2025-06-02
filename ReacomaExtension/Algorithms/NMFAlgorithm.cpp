@@ -135,19 +135,26 @@ void NMFAlgorithm::AddOutputToTake(MediaItem* item, BufferT::type output, int nu
             GetMediaSourceFileName(srcParent ? srcParent : takeSource, originalFilePathCStr, sizeof(originalFilePathCStr));
         }
     }
+
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&in_time_t), "%Y%m%d%H%M%S");
     
     std::filesystem::path outputFilePath;
     std::string takeName;
-    
     std::filesystem::path originalPath(originalFilePathCStr);
 
     auto parentDir = originalPath.parent_path();
     auto stem = originalPath.stem().string();
     auto extension = originalPath.extension().string();
 
-    takeName = stem + "_" + suffix;
+    std::filesystem::path reacomaFolder = parentDir / "reacoma";
+    std::filesystem::create_directory(reacomaFolder);
+
+    takeName = stem + "_" + ss.str() + "_" + suffix;
     std::string newFilename = takeName + ".wav";
-    outputFilePath = parentDir / newFilename;
+    outputFilePath = reacomaFolder / newFilename;
 
     struct WavConfig {
         char fourcc[4];

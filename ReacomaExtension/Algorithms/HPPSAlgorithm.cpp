@@ -5,6 +5,7 @@
 #include "../VectorBufferAdaptor.h"
 #include "InMemoryDecoder.h"
 #include <filesystem>
+#include <chrono>
 
 using namespace fluid;
 using namespace client;
@@ -146,18 +147,25 @@ void HPSSAlgorithm::AddOutputToTake(MediaItem* item, BufferT::type output, int n
         }
     }
     
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&in_time_t), "%Y%m%d%H%M%S");
+    
     std::filesystem::path outputFilePath;
     std::string takeName;
-    
     std::filesystem::path originalPath(originalFilePathCStr);
 
     auto parentDir = originalPath.parent_path();
     auto stem = originalPath.stem().string();
     auto extension = originalPath.extension().string();
+    
+    std::filesystem::path reacomaFolder = parentDir / "reacoma";
+    std::filesystem::create_directory(reacomaFolder);
 
-    takeName = stem + "_" + suffix;
+    takeName = stem + "_" + ss.str() + "_" + suffix;
     std::string newFilename = takeName + ".wav";
-    outputFilePath = parentDir / newFilename;
+    outputFilePath = reacomaFolder / newFilename;
 
     struct WavConfig {
         char fourcc[4];
