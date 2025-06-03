@@ -5,6 +5,8 @@
 #define PLUG_SHARED_RESOURCES 0
 
 #define SHARED_RESOURCES_SUBPATH "ReacomaExtension"
+#define REAPERAPI_IMPLEMENT
+
 #include "ReacomaExtension.h"
 #include "ReaperExt_include_in_plug_src.h"
 #include "ibmplexmono.hpp"
@@ -61,6 +63,8 @@ ReaperExtBase(pRec)
     IMPAPI(PCM_Source_CreateFromFile);
     IMPAPI(GetMediaSourceParent);
     IMPAPI(GetMediaSourceFileName);
+    IMPAPI(GetProjectPathEx);
+    IMPAPI(GetSetProjectInfo_String);
 
     mMakeGraphicsFunc = [&]() {
         return MakeGraphics(*this, PLUG_WIDTH, PLUG_HEIGHT, PLUG_FPS);
@@ -312,7 +316,7 @@ void ReacomaExtension::OnIdle()
         // Idle tasks. Called every 20ms
         // Call the new SetupUI function to re-layout the UI
         if (mNeedsLayout) {
-            SetupUI(GetUI());
+//            SetupUI(GetUI());
         }
     }
 }
@@ -339,5 +343,7 @@ void ReacomaExtension::SetAlgorithmChoice(EAlgorithmChoice choice, bool triggerU
     if (triggerUIRelayout)
     {
         mNeedsLayout = true;
+//        auto pg = GetUI();
+//        LayoutUI(pg);
     }
 }

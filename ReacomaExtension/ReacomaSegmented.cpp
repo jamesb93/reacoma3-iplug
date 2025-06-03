@@ -68,7 +68,9 @@ ReacomaSegmented::ReacomaSegmented(const IRECT& bounds, int paramIdx, const std:
                 SetValue(0.0);
             }
             SetDirty(true);
+            GetDelegate()->LayoutUI(GetUI());
         }
+        
     }
     
     int ReacomaSegmented::GetSegmentForPos(float x, float y)
