@@ -36,6 +36,7 @@ bool NMFAlgorithm::DoProcess(InputBufferT::type& sourceBuffer, int numChannels, 
     mParams.template set<13>(fluid::client::FFTParams(1024, -1, -1), nullptr);
 
     mClient = NRTThreadedNMFClient(mParams, mContext);
+    mClient.setSynchronous(true);
     mClient.enqueue(mParams);
     Result result = mClient.process();
 

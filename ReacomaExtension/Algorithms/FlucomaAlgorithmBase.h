@@ -23,9 +23,7 @@ public:
           mContext{},
           mParams{ClientType::getParameterDescriptors(), FluidDefaultAllocator()},
           mClient{mParams, mContext}
-    {
-        mClient.setSynchronous(true);
-    }
+    {}
 
     virtual ~FlucomaAlgorithm() override = default;
 

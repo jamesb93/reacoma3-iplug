@@ -48,20 +48,21 @@ bool NoveltySliceAlgorithm::DoProcess(InputBufferT::type& sourceBuffer, int numC
     if (static_cast<int>(kernelsize) % 2 == 0) kernelsize +=1;
     if (static_cast<int>(filtersize) % 2 == 0) filtersize +=1;
     
-    mParams.template set<0>(std::move(sourceBuffer), nullptr); // source
-    mParams.template set<1>(LongT::type(0), nullptr); // startChan
-    mParams.template set<2>(LongT::type(-1), nullptr); // numChans
-    mParams.template set<3>(LongT::type(0), nullptr); // startFrame
-    mParams.template set<4>(LongT::type(-1), nullptr); // numFrames
-    mParams.template set<5>(std::move(slicesOutputBuffer), nullptr); // indices
-    mParams.template set<6>(LongT::type(static_cast<long>(algorithm)), nullptr); // algorithm
-    mParams.template set<7>(LongRuntimeMaxParam(kernelsize, kernelsize), nullptr); // kernelsize
-    mParams.template set<8>(FloatT::type(static_cast<float>(threshold)), nullptr); // threshold
-    mParams.template set<9>(LongRuntimeMaxParam(filtersize, filtersize), nullptr); // filtersize
-    mParams.template set<10>(LongT::type(static_cast<long>(minslicelength)), nullptr); // mininteronsetlength
+    mParams.template set<0>(std::move(sourceBuffer), nullptr);
+    mParams.template set<1>(LongT::type(0), nullptr);
+    mParams.template set<2>(LongT::type(-1), nullptr);
+    mParams.template set<3>(LongT::type(0), nullptr);
+    mParams.template set<4>(LongT::type(-1), nullptr);
+    mParams.template set<5>(std::move(slicesOutputBuffer), nullptr);
+    mParams.template set<6>(LongT::type(algorithm), nullptr);
+    mParams.template set<7>(LongRuntimeMaxParam(kernelsize, kernelsize), nullptr);
+    mParams.template set<8>(FloatT::type(threshold), nullptr);
+    mParams.template set<9>(LongRuntimeMaxParam(filtersize, filtersize), nullptr);
+    mParams.template set<10>(LongT::type(minslicelength), nullptr);
     mParams.template set<11>(fluid::client::FFTParams(1024, -1, -1), nullptr); // fftsettings
     
     mClient = NRTThreadingNoveltySliceClient(mParams, mContext);
+    mClient.setSynchronous(true);
     mClient.enqueue(mParams);
     Result result = mClient.process();
 
