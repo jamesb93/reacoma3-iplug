@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 73;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -161,8 +161,18 @@
 		4FF7B0D4156A825000E6CB12 /* common-mac.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "common-mac.xcconfig"; path = "../../dependencies/iPlug2/common-mac.xcconfig"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		4980C2412DEEE0FC0036DDBE /* PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 4FBA83A820ECAF0B00423B90 /* Sources */;
+			membershipExceptions = (
+				FlucomaAlgorithmBase.h,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		49CE7E092DE2D3CE00F412D8 /* Algorithms */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); name = Algorithms; path = ../Algorithms; sourceTree = SOURCE_ROOT; };
+		49CE7E092DE2D3CE00F412D8 /* Algorithms */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (4980C2412DEEE0FC0036DDBE /* PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); name = Algorithms; path = ../Algorithms; sourceTree = SOURCE_ROOT; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -460,7 +470,6 @@
 				};
 			};
 			buildConfigurationList = 1DEB913E08733D840010E9CD /* Build configuration list for PBXProject "ReacomaExtension-macOS" */;
-			compatibilityVersion = "Xcode 6.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 1;
 			knownRegions = (
@@ -471,6 +480,7 @@
 				Base,
 			);
 			mainGroup = 089C166AFE841209C02AAC07 /* IPlugExample */;
+			preferredProjectObjectVersion = 47;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
