@@ -1,12 +1,8 @@
 #pragma once
-#include "IAlgorithm.h"
-#include <vector>
+#include "FlucomaAlgorithmBase.h"
 #include "../../dependencies/flucoma-core/include/flucoma/clients/rt/NoveltySliceClient.hpp"
-#include "../../dependencies/flucoma-core/include/flucoma/clients/common/FluidContext.hpp"
 
-using namespace fluid::client;
-
-class NoveltySliceAlgorithm : public IAlgorithm {
+class NoveltySliceAlgorithm : public FlucomaAlgorithm<fluid::client::NRTThreadingNoveltySliceClient> {
 public:
     enum Params {
         kThreshold = 0,
@@ -16,7 +12,7 @@ public:
         kAlgorithm,
         kNumParams
     };
-
+    
     enum EAlgorithmOptions {
         kSpectrum = 0,
         kMFCC,
@@ -29,13 +25,11 @@ public:
     NoveltySliceAlgorithm(ReacomaExtension* apiProvider);
     ~NoveltySliceAlgorithm() override;
 
-    bool ProcessItem(MediaItem* item) override;
     const char* GetName() const override;
     void RegisterParameters() override;
     int GetNumAlgorithmParams() const override;
 
-private:
-    FluidContext mContext;
-    NRTThreadingNoveltySliceClient::ParamSetType mParams;
-    NRTThreadingNoveltySliceClient mClient;
+protected:
+    bool DoProcess(InputBufferT::type& sourceBuffer, int numChannels, int frameCount, int sampleRate) override;
+    bool HandleResults(MediaItem* item, MediaItem_Take* take, int numChannels, int sampleRate) override;
 };

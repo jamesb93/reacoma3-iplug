@@ -1,31 +1,23 @@
 #pragma once
-#include "IAlgorithm.h"
-#include <vector>
+#include "FlucomaAlgorithmBase.h"
 #include "../../dependencies/flucoma-core/include/flucoma/clients/nrt/NMFClient.hpp"
-#include "../../dependencies/flucoma-core/include/flucoma/clients/common/FluidContext.hpp"
 
-using namespace fluid::client;
-
-class NMFAlgorithm : public IAlgorithm {
+class NMFAlgorithm : public AudioOutputAlgorithm<fluid::client::NRTThreadedNMFClient> {
 public:
     enum Params {
         kComponents = 0,
         kIterations,
-//        kFFTSettings,
         kNumParams
     };
 
     NMFAlgorithm(ReacomaExtension* apiProvider);
     ~NMFAlgorithm() override;
 
-    bool ProcessItem(MediaItem* item) override;
     const char* GetName() const override;
     void RegisterParameters() override;
     int GetNumAlgorithmParams() const override;
-    void AddOutputToTake(MediaItem* item, BufferT::type output, int numChannels, int sampleRate, const std::string& suffix);
 
-private:
-    FluidContext mContext;
-    NRTThreadedNMFClient::ParamSetType mParams;
-    NRTThreadedNMFClient mClient;
+protected:
+    bool DoProcess(InputBufferT::type& sourceBuffer, int numChannels, int frameCount, int sampleRate) override;
+    bool HandleResults(MediaItem* item, MediaItem_Take* take, int numChannels, int sampleRate) override;
 };

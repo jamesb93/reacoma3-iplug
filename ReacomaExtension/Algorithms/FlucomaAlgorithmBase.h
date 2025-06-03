@@ -4,31 +4,22 @@
 #include "ReacomaExtension.h"
 #include "reaper_plugin_functions.h"
 #include "../VectorBufferAdaptor.h"
-#include <flucoma/clients/common/FluidContext.hpp>
-#include <flucoma/clients/common/Result.hpp>
+#include "../../dependencies/flucoma-core/include/flucoma/clients/common/FluidContext.hpp"
+#include "../../dependencies/flucoma-core/include/flucoma/clients/common/Result.hpp"
+#include <iomanip>
+#include <filesystem>
 
 using namespace fluid;
-using from client;
+using namespace client;
 
 // Forward declarations
 class MediaItem;
 class MediaItem_Take;
 
-/**
- * @class FluCoMaAlgorithm
- * @brief A templated base class for FluCoMa algorithms.
- *
- * This class uses the Template Method Pattern. The `ProcessItem` method defines the
- * skeleton of the operation, deferring the algorithm-specific steps (`DoProcess` and
- * `HandleResults`) to subclasses. It handles all the boilerplate for getting audio
- * data from REAPER and setting up a source buffer.
- *
- * @tparam ClientType The specific FluCoMa NRT client (e.g., NRTThreadedNMFClient).
- */
 template <typename ClientType>
-class FluCoMaAlgorithm : public IAlgorithm {
+class FlucomaAlgorithm : public IAlgorithm {
 public:
-    FluCoMaAlgorithm(ReacomaExtension* apiProvider)
+    FlucomaAlgorithm(ReacomaExtension* apiProvider)
         : IAlgorithm(apiProvider),
           mContext{},
           mParams{ClientType::getParameterDescriptors(), FluidDefaultAllocator()},
@@ -37,7 +28,7 @@ public:
         mClient.setSynchronous(true); // Ideal for REAPER integration
     }
 
-    virtual ~FluCoMaAlgorithm() override = default;
+    virtual ~FlucomaAlgorithm() override = default;
 
     // The "Template Method"
     bool ProcessItem(MediaItem* item) override final {
@@ -133,12 +124,12 @@ protected:
  * shared by algorithms like NMF and HPSS.
  */
 template <typename ClientType>
-class AudioOutputAlgorithm : public FluCoMaAlgorithm<ClientType> {
+class AudioOutputAlgorithm : public FlucomaAlgorithm<ClientType> {
 protected:
-    using FluCoMaAlgorithm<ClientType>::mApiProvider; // Make base members visible
+    using FlucomaAlgorithm<ClientType>::mApiProvider; // Make base members visible
     
     AudioOutputAlgorithm(ReacomaExtension* apiProvider)
-        : FluCoMaAlgorithm<ClientType>(apiProvider) {}
+        : FlucomaAlgorithm<ClientType>(apiProvider) {}
 
     void AddOutputToTake(MediaItem* item, BufferT::type output, int sampleRate, const std::string& suffix) {
         if (!output) return;
