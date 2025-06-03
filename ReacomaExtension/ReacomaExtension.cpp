@@ -17,6 +17,7 @@
 #include "ReacomaSlider.h"
 #include "ReacomaButton.h"
 #include "ReacomaSegmented.h"
+#include "ReacomaProgressBar.h"
 #include <deque>
 #include <algorithm>
 
@@ -204,8 +205,19 @@ void ReacomaExtension::SetupUI(IGraphics* pGraphics)
         currentLayoutBounds.T = controlCellRect.B + verticalSpacing;
     }
 
-    mainContentArea.T = currentLayoutBounds.T;
+    IRECT progressBarBounds;
+    if (currentLayoutBounds.H() >= controlVisualHeight) {
+        progressBarBounds = currentLayoutBounds.GetFromTop(controlVisualHeight);
+        currentLayoutBounds.T = progressBarBounds.B + verticalSpacing;
+    }
+    
+    mProgressBar = new ReacomaProgressBar(progressBarBounds, "Overall Progress");
+    pGraphics->AttachControl(mProgressBar);
+    mProgressBar->SetDisabled(true);
 
+    mainContentArea.T = currentLayoutBounds.T;
+    
+    mainContentArea.T = currentLayoutBounds.T;
     if (mainContentArea.H() >= actionButtonHeight) {
         IRECT actionButtonRowBounds = mainContentArea.GetFromTop(actionButtonHeight);
         int numActionButtons = 3;
@@ -223,38 +235,42 @@ void ReacomaExtension::SetupUI(IGraphics* pGraphics)
 
 void ReacomaExtension::Process(Mode mode, bool force)
 {
-    if (mIsProcessingBatch) {
-        ShowConsoleMsg("Reacoma: A batch is already being processed.\n");
-        return;
-    }
-
-    // 1. Determine concurrency limit. Default to 1 if detection fails.
     auto cores = std::thread::hardware_concurrency();
     mConcurrencyLimit = std::min(4U, cores);
     if (mConcurrencyLimit == 0) mConcurrencyLimit = 1;
-    // 2. Populate the PENDING queue with all selected items
     mPendingItemsQueue.clear();
     for (int i = 0; i < CountSelectedMediaItems(0); ++i) {
         mPendingItemsQueue.push_back(GetSelectedMediaItem(0, i));
     }
 
-    if (mPendingItemsQueue.empty() || mCurrentActiveAlgorithmPtr == nullptr) return;
+    if (mPendingItemsQueue.empty() || mCurrentActiveAlgorithmPtr == nullptr) {
+        return;
+    }
 
-    // 3. Set the state for the entire batch operation
     mIsProcessingBatch = true;
     mActiveJobs.clear();
     mFinalizationQueue.clear();
+
+    if(mProgressBar) {
+        mProgressBar->SetProgress(0.0);
+        mProgressBar->SetDisabled(false);
+    }
     
-    if (GetUI()) { /* ... disable UI ... */ }
+    if (GetUI()) // Ensure the UI exists
+    {
+        IGraphics* pGraphics = GetUI();
+        for (int i = 0; i < pGraphics->NControls(); ++i)
+        {
+            IControl* pControl = pGraphics->GetControl(i);
+            if (pControl && pControl != mProgressBar) // Optionally exclude the progress bar itself
+            {
+                pControl->SetDisabled(true);
+            }
+        }
+    }
 
     mBatchUndoProject = GetItemProjectContext(mPendingItemsQueue.front());
     Undo_BeginBlock2(mBatchUndoProject);
-
-    char msg[128];
-    snprintf(msg, sizeof(msg), "Reacoma: Starting batch of %zu items with up to %u threads.\n", mPendingItemsQueue.size(), mConcurrencyLimit);
-    ShowConsoleMsg(msg);
-    
-    // The OnIdle() loop will now handle starting jobs.
 }
 
 void ReacomaExtension::OnParamChangeUI(int paramIdx, EParamSource source)
@@ -279,15 +295,32 @@ void ReacomaExtension::OnIdle()
     if (!mIsProcessingBatch) {
         return;
     }
+    
+    if (mProgressBar)
+    {
+        double accumProgress = 0.0;
+        for (const auto& job : mActiveJobs) {
+            accumProgress += job->GetProgress();
+        }
+        for (const auto& job : mFinalizationQueue) {
+            accumProgress += job->GetProgress();
+        }
+        
+        double normalisedProgress = accumProgress / (mActiveJobs.size() + mFinalizationQueue.size());
+        
+//        std::stringstream ss;
+//        ss << accumProgress;
+//        auto progressStr = ss.str().c_str();
+//        ShowConsoleMsg(progressStr);
+        mProgressBar->SetProgress(normalisedProgress);
+    }
 
-    // --- Phase 1: Check for finished jobs in the active list ---
-    // Move any completed jobs to the finalization queue.
     for (auto it = mActiveJobs.begin(); it != mActiveJobs.end(); )
     {
         if ((*it)->IsFinished())
         {
             mFinalizationQueue.push_back(std::move(*it));
-            it = mActiveJobs.erase(it); // A slot has been freed up.
+            it = mActiveJobs.erase(it);
         }
         else
         {
@@ -295,22 +328,18 @@ void ReacomaExtension::OnIdle()
         }
     }
 
-    // --- Phase 2: Start new jobs from the pending queue if there are free slots ---
     while (mActiveJobs.size() < mConcurrencyLimit && !mPendingItemsQueue.empty())
     {
-        // Get the next item to process
         MediaItem* itemToProcess = mPendingItemsQueue.front();
         mPendingItemsQueue.pop_front();
 
-        // Create and start a new job
         auto job = ProcessingJob::Create(mCurrentAlgorithmChoice, itemToProcess, this);
         if (job) {
             job->Start();
-            mActiveJobs.push_back(std::move(job)); // Add it to the active list
+            mActiveJobs.push_back(std::move(job));
         }
     }
 
-    // --- Phase 3: Process one finished job from the finalization queue (main thread safe) ---
     if (!mFinalizationQueue.empty())
     {
         auto& finishedJob = mFinalizationQueue.front();
@@ -318,17 +347,25 @@ void ReacomaExtension::OnIdle()
         mFinalizationQueue.pop_front();
     }
 
-    // --- Phase 4: Check if the entire batch is complete ---
-    // This happens when there are no more pending items and no more active jobs.
     if (mPendingItemsQueue.empty() && mActiveJobs.empty() && mFinalizationQueue.empty())
     {
         mIsProcessingBatch = false;
-        ShowConsoleMsg("Reacoma: Batch processing complete.\n");
         
         Undo_EndBlock2(mBatchUndoProject, "Reacoma: Process Batch", -1);
         mBatchUndoProject = nullptr;
 
-        if (GetUI()) { /* ... re-enable UI ... */ }
+        if (GetUI()) // Ensure the UI exists
+        {
+            IGraphics* pGraphics = GetUI();
+            for (int i = 0; i < pGraphics->NControls(); ++i)
+            {
+                IControl* pControl = pGraphics->GetControl(i);
+                if (pControl && pControl != mProgressBar) // Optionally exclude the progress bar itself
+                {
+                    pControl->SetDisabled(false);
+                }
+            }
+        }
         
         UpdateArrange();
         UpdateTimeline();

@@ -14,6 +14,7 @@
 
 class IAlgorithm;
 class ProcessingJob;
+class ReacomaProgressBar;
 
 using namespace iplug;
 using namespace igraphics;
@@ -50,19 +51,23 @@ private:
     void SetupUI(IGraphics* pGraphics);
     void StartNextItemInQueue();
     
+    int mGUIToggle = 0;
+    
     IAlgorithm* mCurrentActiveAlgorithmPtr = nullptr;
     EAlgorithmChoice mCurrentAlgorithmChoice = kNoveltySlice;
-    
-    bool mIsProcessingBatch = false;
+
     unsigned int mConcurrencyLimit = 1;
 
     std::deque<MediaItem*> mPendingItemsQueue;
 
     std::list<std::unique_ptr<ProcessingJob>> mActiveJobs;
-
     std::deque<std::unique_ptr<ProcessingJob>> mFinalizationQueue;
+    std::deque<MediaItem*> mProcessingQueue;
     
     ReaProject* mBatchUndoProject = nullptr;
+    ReacomaProgressBar* mProgressBar = nullptr;
     
-    int mGUIToggle = 0;
+    bool mIsProcessingBatch = false;
+    IAlgorithm* mBatchProcessingAlgorithm = nullptr;
+    MediaItem* mCurrentlyProcessingItem = nullptr;
 };

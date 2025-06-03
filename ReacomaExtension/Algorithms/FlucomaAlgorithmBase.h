@@ -36,6 +36,7 @@ public:
         
         if (!item || !mApiProvider) return false;
         mIsFinishedFlag = false;
+        mProgress = 0.0;
         
         MediaItem_Take* take = GetActiveTake(item);
         if (!take) return false;
@@ -87,19 +88,16 @@ public:
         if (mIsFinishedFlag) return true;
         Result result;
         ProcessState processState = mClient.checkProgress(result);
-        double progress = mClient.progress();
-        std::stringstream ss;
-        ss << progress;
-        const char* str = ss.str().c_str();
-        ShowConsoleMsg(str);
+        mProgress = mClient.progress();
+
         if (processState == fluid::client::ProcessState::kDone ||
             processState == fluid::client::ProcessState::kDoneStillProcessing) {
-                mIsFinishedFlag = true;
-            }
+            mIsFinishedFlag = true;
+            mProgress = 1.0;
+        }
         return mIsFinishedFlag;
     }
 
-    // NEW: Method to handle the results after the task is complete
     bool FinalizeProcess(MediaItem* item) override final {
         if (!mItemForAsync || item != mItemForAsync) return false;
         
@@ -116,6 +114,10 @@ public:
         }
         
         return success;
+    }
+    
+    double GetProgress() override final {
+        return mProgress;
     }
 
 
@@ -134,6 +136,7 @@ private:
     int mNumChannelsForAsync = 0;
     int mSampleRateForAsync = 0;
     bool mIsFinishedFlag = false;
+    double mProgress = 0.0;
 };
 
 template <typename ClientType>
