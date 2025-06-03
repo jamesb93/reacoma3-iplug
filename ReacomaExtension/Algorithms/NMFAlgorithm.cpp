@@ -45,7 +45,7 @@ bool NMFAlgorithm::DoProcess(InputBufferT::type& sourceBuffer, int numChannels, 
 }
 
 bool NMFAlgorithm::HandleResults(MediaItem* item, MediaItem_Take* take, int numChannels, int sampleRate) {
-    auto resynthOutputBuffer = mParams.template get<5>().get(); // Get the buffer we created in DoProcess
+    auto resynthOutputBuffer = mParams.template get<5>(); // Get the buffer we created in DoProcess
     AddOutputToTake(item, resynthOutputBuffer, sampleRate, "nmf");
     return true;
 }

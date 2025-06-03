@@ -68,8 +68,8 @@ bool NoveltySliceAlgorithm::DoProcess(InputBufferT::type& sourceBuffer, int numC
 }
 
 bool NoveltySliceAlgorithm::HandleResults(MediaItem* item, MediaItem_Take* take, int numChannels, int sampleRate) {
-    auto processedSlicesBuffer = mParams.template get<5>().get();
-    BufferAdaptor::ReadAccess reader(processedSlicesBuffer);
+    auto processedSlicesBuffer = mParams.template get<5>();
+    BufferAdaptor::ReadAccess reader(processedSlicesBuffer.get());
 
     if (!reader.exists() || !reader.valid()) return false;
 

@@ -1,6 +1,6 @@
 #pragma once
-#include "FlucomaAlgorithmBase.h"
 #include "../../dependencies/flucoma-core/include/flucoma/clients/rt/NoveltySliceClient.hpp"
+#include "FlucomaAlgorithmBase.h"
 
 class NoveltySliceAlgorithm : public FlucomaAlgorithm<fluid::client::NRTThreadingNoveltySliceClient> {
 public:

@@ -1,20 +1,17 @@
 #pragma once
 
 #include "IAlgorithm.h"
-#include "ReacomaExtension.h"
-#include "reaper_plugin_functions.h"
 #include "../VectorBufferAdaptor.h"
 #include "../../dependencies/flucoma-core/include/flucoma/clients/common/FluidContext.hpp"
 #include "../../dependencies/flucoma-core/include/flucoma/clients/common/Result.hpp"
+#include "../../dependencies/flucoma-core/include/flucoma/clients/common/ParameterTypes.hpp"
 #include <iomanip>
 #include <filesystem>
 
 using namespace fluid;
 using namespace client;
 
-// Forward declarations
-class MediaItem;
-class MediaItem_Take;
+class ReacomaExtension;
 
 template <typename ClientType>
 class FlucomaAlgorithm : public IAlgorithm {
@@ -81,33 +78,7 @@ public:
     }
 
 protected:
-    /**
-     * @brief Performs the core algorithm processing.
-     *
-     * This pure virtual function must be implemented by derived classes. It is responsible
-     * for setting up the algorithm's parameters in `mParams` and executing the process.
-     *
-     * @param sourceBuffer The input audio buffer.
-     * @param numChannels The number of channels in the source audio.
-     * @param frameCount The number of frames in the source audio.
-     * @param sampleRate The sample rate of the source audio.
-     * @return true if processing was successful, false otherwise.
-     */
     virtual bool DoProcess(InputBufferT::type& sourceBuffer, int numChannels, int frameCount, int sampleRate) = 0;
-
-    /**
-     * @brief Handles the output of the algorithm.
-     *
-     * This pure virtual function must be implemented by derived classes. It is responsible
-     * for taking the results from the processed buffers in `mParams` and applying them
-     * to the REAPER project (e.g., creating new takes, adding markers).
-     *
-     * @param item The original MediaItem.
-     * @param take The active take of the MediaItem.
-     * @param numChannels The number of channels in the original audio.
-     * @param sampleRate The sample rate of the original audio.
-     * @return true if handling was successful, false otherwise.
-     */
     virtual bool HandleResults(MediaItem* item, MediaItem_Take* take, int numChannels, int sampleRate) = 0;
 
 protected:
@@ -116,13 +87,6 @@ protected:
     ClientType mClient;
 };
 
-/**
- * @class AudioOutputAlgorithm
- * @brief An intermediate base class for algorithms that produce new audio files.
- *
- * This class provides a concrete implementation of `AddOutputToTake`, which is
- * shared by algorithms like NMF and HPSS.
- */
 template <typename ClientType>
 class AudioOutputAlgorithm : public FlucomaAlgorithm<ClientType> {
 protected:

@@ -1,6 +1,5 @@
 #include "HPSSAlgorithm.h"
 #include "ReacomaExtension.h"
-#include "reaper_plugin_functions.h"
 #include "IPlugParameter.h"
 #include "../VectorBufferAdaptor.h"
 #include "InMemoryDecoder.h"
