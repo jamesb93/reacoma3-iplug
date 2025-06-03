@@ -4,13 +4,16 @@
 #include "reaper_plugin.h"
 #include <memory>
 #include <vector>
-#include <deque> // NEW: For using a queue
+#include <deque>
+#include <thread>
+#include <list>
 
 #include "Algorithms/NoveltySliceAlgorithm.h"
 #include "Algorithms/HPSSAlgorithm.h"
 #include "Algorithms/NMFAlgorithm.h"
 
 class IAlgorithm;
+class ProcessingJob;
 
 using namespace iplug;
 using namespace igraphics;
@@ -20,8 +23,7 @@ class ReacomaExtension : public ReaperExtBase
 public:
     enum class Mode { Segment, Markers, Regions, Preview };
     
-    enum EParams
-    {
+    enum EParams {
         kParamAlgorithmChoice = 0,
         kNumOwnParams
     };
@@ -37,8 +39,6 @@ public:
     void OnUIClose() override;
     void Process(Mode mode, bool force);
     
-
-
 private:
     std::unique_ptr<NoveltySliceAlgorithm> mNoveltyAlgorithm;
     std::unique_ptr<HPSSAlgorithm> mHPSSAlgorithm;
@@ -46,36 +46,23 @@ private:
     
     void OnParamChangeUI(int paramIdx, EParamSource source) override;
     void OnIdle() override;
-    bool UpdateSelectedItems(bool force);
     void SetAlgorithmChoice(EAlgorithmChoice choice, bool triggerUIRelayout);
     void SetupUI(IGraphics* pGraphics);
-
     void StartNextItemInQueue();
     
-    int mPrevTrackCount = 0;
-    int mGUIToggle = 0;
-    
-    bool mNeedsPreview = false;
-    
-    double mLastUpdate = -1.0;
-    
-    int mNumSelectedItems = 0;
-    
-    std::vector<MediaItem*> mSelectedItems;
-
     IAlgorithm* mCurrentActiveAlgorithmPtr = nullptr;
     EAlgorithmChoice mCurrentAlgorithmChoice = kNoveltySlice;
     
-    // MODIFIED: State variables are now for managing a queue of items
-    bool mIsProcessingBatch = false; // Renamed for clarity
-    IAlgorithm* mBatchProcessingAlgorithm = nullptr; // Renamed for clarity
-    MediaItem* mCurrentlyProcessingItem = nullptr; // Tracks the single item being processed now
-    std::deque<MediaItem*> mProcessingQueue; // The queue of items waiting to be processed
-    int mTotalQueueSize = 0;
-    int mQueueProgress = 0;
+    bool mIsProcessingBatch = false;
+    unsigned int mConcurrencyLimit = 1;
+
+    std::deque<MediaItem*> mPendingItemsQueue;
+
+    std::list<std::unique_ptr<ProcessingJob>> mActiveJobs;
+
+    std::deque<std::unique_ptr<ProcessingJob>> mFinalizationQueue;
     
-    // WAS:
-    // bool mIsProcessingAsync = false;
-    // IAlgorithm* mAsyncProcessingAlgorithm = nullptr;
-    // MediaItem* mAsyncProcessingItem = nullptr;
+    ReaProject* mBatchUndoProject = nullptr;
+    
+    int mGUIToggle = 0;
 };

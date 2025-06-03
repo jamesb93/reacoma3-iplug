@@ -18,6 +18,9 @@
 #include "ReacomaButton.h"
 #include "ReacomaSegmented.h"
 #include <deque>
+#include <algorithm>
+
+#include "Algorithms/ProcessingJob.h"
 
 template <ReacomaExtension::Mode M>
 struct ProcessAction
@@ -66,6 +69,7 @@ ReaperExtBase(pRec)
     IMPAPI(GetMediaSourceFileName);
     IMPAPI(GetProjectPathEx);
     IMPAPI(GetSetProjectInfo_String);
+    IMPAPI(SetMediaItemInfo_Value);
 
     mMakeGraphicsFunc = [&]() {
         return MakeGraphics(*this, PLUG_WIDTH, PLUG_HEIGHT, PLUG_FPS);
@@ -219,114 +223,38 @@ void ReacomaExtension::SetupUI(IGraphics* pGraphics)
 
 void ReacomaExtension::Process(Mode mode, bool force)
 {
-    // MODIFIED: This function now populates a queue with all selected items and starts the batch.
-
     if (mIsProcessingBatch) {
         ShowConsoleMsg("Reacoma: A batch is already being processed.\n");
         return;
     }
 
-    const int numSelectedItems = CountSelectedMediaItems(0);
-    if (numSelectedItems == 0) return;
-
-    if (!mCurrentActiveAlgorithmPtr) return;
-
-    // 1. Populate the queue with all selected items
-    mProcessingQueue.clear();
-    for (int i = 0; i < numSelectedItems; ++i)
-    {
-        mProcessingQueue.push_back(GetSelectedMediaItem(0, i));
+    // 1. Determine concurrency limit. Default to 1 if detection fails.
+    auto cores = std::thread::hardware_concurrency();
+    mConcurrencyLimit = std::min(4U, cores);
+    if (mConcurrencyLimit == 0) mConcurrencyLimit = 1;
+    // 2. Populate the PENDING queue with all selected items
+    mPendingItemsQueue.clear();
+    for (int i = 0; i < CountSelectedMediaItems(0); ++i) {
+        mPendingItemsQueue.push_back(GetSelectedMediaItem(0, i));
     }
+
+    if (mPendingItemsQueue.empty() || mCurrentActiveAlgorithmPtr == nullptr) return;
+
+    // 3. Set the state for the entire batch operation
+    mIsProcessingBatch = true;
+    mActiveJobs.clear();
+    mFinalizationQueue.clear();
     
-    mTotalQueueSize = mProcessingQueue.size();
-    mQueueProgress = 0;
+    if (GetUI()) { /* ... disable UI ... */ }
 
-    if (!mProcessingQueue.empty())
-    {
-        // 2. Set the state for the entire batch operation
-        mIsProcessingBatch = true;
-        mBatchProcessingAlgorithm = mCurrentActiveAlgorithmPtr;
-        
-        // Disable UI controls here
-        if (GetUI()) {
-            // GetUI()->GetControlWithTag(kProcessButtonTag)->SetDisabled(true);
-            GetUI()->SetAllControlsDirty();
-        }
+    mBatchUndoProject = GetItemProjectContext(mPendingItemsQueue.front());
+    Undo_BeginBlock2(mBatchUndoProject);
 
-        // 3. Begin a single Undo block for the whole batch
-        ReaProject* project = GetItemProjectContext(mProcessingQueue.front());
-        Undo_BeginBlock2(project);
-
-        // 4. Kick off the first item in the queue
-        StartNextItemInQueue();
-    }
-}
-
-void ReacomaExtension::StartNextItemInQueue()
-{
-    // MODIFIED: This new helper function is the heart of the queue logic.
-
-    // Check if the queue is empty, which means the batch is complete.
-    if (mProcessingQueue.empty())
-    {
-        ShowConsoleMsg("Reacoma: Batch processing complete.\n");
-        
-        // End the single Undo block
-        ReaProject* project = GetItemProjectContext(mCurrentlyProcessingItem); // Use last item for context
-        Undo_EndBlock2(project, "Reacoma: Process Batch", -1);
-
-        // Reset all state
-        mIsProcessingBatch = false;
-        mBatchProcessingAlgorithm = nullptr;
-        mCurrentlyProcessingItem = nullptr;
-        mTotalQueueSize = 0;
-        mQueueProgress = 0;
-
-        // Re-enable UI controls
-        if (GetUI()) {
-            // GetUI()->GetControlWithTag(kProcessButtonTag)->SetDisabled(false);
-            GetUI()->SetAllControlsDirty();
-        }
-        
-        UpdateArrange();
-        UpdateTimeline();
-        return;
-    }
-
-    // Get the next item from the front of the queue
-    mCurrentlyProcessingItem = mProcessingQueue.front();
-    mProcessingQueue.pop_front();
-    mQueueProgress++;
-
-    // Start processing the current item
-    if (mCurrentlyProcessingItem && mBatchProcessingAlgorithm)
-    {
-        char msg[128];
-        snprintf(msg, sizeof(msg), "Reacoma: Processing item %d of %d...\n", mQueueProgress, mTotalQueueSize);
-        ShowConsoleMsg(msg);
-        
-        if (!mBatchProcessingAlgorithm->StartProcessItemAsync(mCurrentlyProcessingItem))
-        {
-            ShowConsoleMsg("Reacoma: Failed to start processing item. Skipping.\n");
-            mCurrentlyProcessingItem = nullptr; // Clear the failed item
-            StartNextItemInQueue(); // Immediately try to start the next one
-        }
-    }
-}
-
-bool ReacomaExtension::UpdateSelectedItems(bool force)
-{
-    const int numSelectedItems = CountSelectedMediaItems(0);
-    std::vector<MediaItem*> selectedItems;
-    for (int i = 0; i < numSelectedItems; i++)
-        selectedItems.push_back(GetSelectedMediaItem(0, i));
-
-    if (mSelectedItems != selectedItems)
-    {
-        std::swap(mSelectedItems, selectedItems);
-        return true;
-    }
-    return false;
+    char msg[128];
+    snprintf(msg, sizeof(msg), "Reacoma: Starting batch of %zu items with up to %u threads.\n", mPendingItemsQueue.size(), mConcurrencyLimit);
+    ShowConsoleMsg(msg);
+    
+    // The OnIdle() loop will now handle starting jobs.
 }
 
 void ReacomaExtension::OnParamChangeUI(int paramIdx, EParamSource source)
@@ -348,27 +276,62 @@ void ReacomaExtension::OnParamChangeUI(int paramIdx, EParamSource source)
 
 void ReacomaExtension::OnIdle()
 {
-    // MODIFIED: This function now polls the *currently active item* and starts the next one upon completion.
-
-    // If we're not running a batch or if there isn't an item actively processing, do nothing.
-    if (!mIsProcessingBatch || !mCurrentlyProcessingItem || !mBatchProcessingAlgorithm) {
+    if (!mIsProcessingBatch) {
         return;
     }
 
-    // Check if the currently active item has finished its background task.
-    if (mBatchProcessingAlgorithm->IsFinished())
+    // --- Phase 1: Check for finished jobs in the active list ---
+    // Move any completed jobs to the finalization queue.
+    for (auto it = mActiveJobs.begin(); it != mActiveJobs.end(); )
     {
-        // Finalize the results for the completed item.
-        bool success = mBatchProcessingAlgorithm->FinalizeProcess(mCurrentlyProcessingItem);
-        if (!success) {
-            ShowConsoleMsg("Reacoma: Finalization failed for an item.\n");
+        if ((*it)->IsFinished())
+        {
+            mFinalizationQueue.push_back(std::move(*it));
+            it = mActiveJobs.erase(it); // A slot has been freed up.
         }
-        
-        // The item is done, so clear the pointer.
-        mCurrentlyProcessingItem = nullptr;
+        else
+        {
+            ++it;
+        }
+    }
 
-        // Immediately try to process the next item in the queue.
-        StartNextItemInQueue();
+    // --- Phase 2: Start new jobs from the pending queue if there are free slots ---
+    while (mActiveJobs.size() < mConcurrencyLimit && !mPendingItemsQueue.empty())
+    {
+        // Get the next item to process
+        MediaItem* itemToProcess = mPendingItemsQueue.front();
+        mPendingItemsQueue.pop_front();
+
+        // Create and start a new job
+        auto job = ProcessingJob::Create(mCurrentAlgorithmChoice, itemToProcess, this);
+        if (job) {
+            job->Start();
+            mActiveJobs.push_back(std::move(job)); // Add it to the active list
+        }
+    }
+
+    // --- Phase 3: Process one finished job from the finalization queue (main thread safe) ---
+    if (!mFinalizationQueue.empty())
+    {
+        auto& finishedJob = mFinalizationQueue.front();
+        finishedJob->Finalize();
+        mFinalizationQueue.pop_front();
+    }
+
+    // --- Phase 4: Check if the entire batch is complete ---
+    // This happens when there are no more pending items and no more active jobs.
+    if (mPendingItemsQueue.empty() && mActiveJobs.empty() && mFinalizationQueue.empty())
+    {
+        mIsProcessingBatch = false;
+        ShowConsoleMsg("Reacoma: Batch processing complete.\n");
+        
+        Undo_EndBlock2(mBatchUndoProject, "Reacoma: Process Batch", -1);
+        mBatchUndoProject = nullptr;
+
+        if (GetUI()) { /* ... re-enable UI ... */ }
+        
+        UpdateArrange();
+        UpdateTimeline();
     }
 }
 

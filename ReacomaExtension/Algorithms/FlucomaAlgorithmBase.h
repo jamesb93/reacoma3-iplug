@@ -30,6 +30,10 @@ public:
     virtual ~FlucomaAlgorithm() override = default;
 
     bool StartProcessItemAsync(MediaItem* item) override final {
+        
+        SetMediaItemInfo_Value(item, "C_LOCK", true);
+        UpdateTimeline();
+        
         if (!item || !mApiProvider) return false;
         mIsFinishedFlag = false;
         
@@ -97,15 +101,15 @@ public:
 
     // NEW: Method to handle the results after the task is complete
     bool FinalizeProcess(MediaItem* item) override final {
-        // Verification check
         if (!mItemForAsync || item != mItemForAsync) return false;
         
-        // Use the stored context from when StartProcessItemAsync was called
         bool success = HandleResults(mItemForAsync, mTakeForAsync, mNumChannelsForAsync, mSampleRateForAsync);
         
         // Clean up context state
         mItemForAsync = nullptr;
         mTakeForAsync = nullptr;
+        
+        SetMediaItemInfo_Value(item, "C_LOCK", false);
         
         if(success) {
             UpdateTimeline();
