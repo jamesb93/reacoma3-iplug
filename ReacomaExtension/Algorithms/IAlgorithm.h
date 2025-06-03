@@ -7,19 +7,20 @@ class ReacomaExtension;
 
 class IAlgorithm {
 public:
-    // Constructor now takes a ReacomaExtension pointer
     IAlgorithm(ReacomaExtension* apiProvider);
-    // CRUCIAL: Destructor MUST be virtual for polymorphic base classes
     virtual ~IAlgorithm();
 
-    // Pure virtual function: Concrete derived classes MUST implement this.
-    virtual bool ProcessItem(MediaItem* item) = 0;
+    // MODIFIED: The old ProcessItem is now split into three phases for async operations
+    virtual bool StartProcessItemAsync(MediaItem* item) = 0;
+    virtual bool IsFinished() = 0;
+    virtual bool FinalizeProcess(MediaItem* item) = 0;
+    // WAS: virtual bool ProcessItem(MediaItem* item) = 0;
+
 
     // Pure virtual function: Each concrete algorithm should provide its name.
     virtual const char* GetName() const = 0;
 
     // Pure virtual function: Each concrete algorithm will have its own parameters to register.
-    // This method will set mBaseParamIdx.
     virtual void RegisterParameters() = 0;
 
     // Helper to get the global parameter index for an algorithm-specific parameter enum

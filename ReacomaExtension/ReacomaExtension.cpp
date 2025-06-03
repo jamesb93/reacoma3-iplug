@@ -17,6 +17,7 @@
 #include "ReacomaSlider.h"
 #include "ReacomaButton.h"
 #include "ReacomaSegmented.h"
+#include <deque>
 
 template <ReacomaExtension::Mode M>
 struct ProcessAction
@@ -101,7 +102,6 @@ void ReacomaExtension::OnUIClose()
 
 void ReacomaExtension::SetupUI(IGraphics* pGraphics)
 {
-    mNeedsLayout = false;
     const IRECT bounds = pGraphics->GetBounds();
     const IColor swissBackgroundColor = COLOR_WHITE;
 
@@ -219,61 +219,98 @@ void ReacomaExtension::SetupUI(IGraphics* pGraphics)
 
 void ReacomaExtension::Process(Mode mode, bool force)
 {
-    const int numSelectedItems = CountSelectedMediaItems(0);
-    if (numSelectedItems == 0) {
+    // MODIFIED: This function now populates a queue with all selected items and starts the batch.
+
+    if (mIsProcessingBatch) {
+        ShowConsoleMsg("Reacoma: A batch is already being processed.\n");
         return;
     }
 
-    ReaProject* project = GetItemProjectContext(GetSelectedMediaItem(0, 0));
+    const int numSelectedItems = CountSelectedMediaItems(0);
+    if (numSelectedItems == 0) return;
 
-    bool undoBlockStarted = false;
-    const char* undoDesc = "Reacoma Process";
+    if (!mCurrentActiveAlgorithmPtr) return;
 
-    if (mode != Mode::Preview)
-    {
-        switch (mode) {
-            case Mode::Segment: undoDesc = "Reacoma: Segment Item(s)"; break;
-            case Mode::Markers: undoDesc = "Reacoma: Process Markers for Item(s)"; break;
-            case Mode::Regions: undoDesc = "Reacoma: Create Region(s) for Item(s)"; break;
-            default: undoDesc = "Reacoma: Unknown Action"; break;
-        }
-        Undo_BeginBlock2(project);
-        undoBlockStarted = true;
-    }
-
+    // 1. Populate the queue with all selected items
+    mProcessingQueue.clear();
     for (int i = 0; i < numSelectedItems; ++i)
     {
-        MediaItem* item = GetSelectedMediaItem(0, i);
-        if (!item) continue;
-
-        bool success = false;
-        switch (mode)
-        {
-            case Mode::Segment:
-                ShowConsoleMsg("Segment mode is conceptual. Implement in IAlgorithm if needed.\n");
-                break;
-            case Mode::Markers:
-                success = mCurrentActiveAlgorithmPtr->ProcessItem(item);
-                break;
-            case Mode::Regions:
-                ShowConsoleMsg("Regions mode is conceptual. Implement in IAlgorithm if needed.\n");
-                break;
-            case Mode::Preview:
-                break;
-            default:
-                ShowConsoleMsg("ReacomaExtension: Unknown processing mode.\n");
-                break;
-        }
+        mProcessingQueue.push_back(GetSelectedMediaItem(0, i));
     }
+    
+    mTotalQueueSize = mProcessingQueue.size();
+    mQueueProgress = 0;
 
-    if (undoBlockStarted)
+    if (!mProcessingQueue.empty())
     {
-        Undo_EndBlock2(project, undoDesc, -1);
-    }
+        // 2. Set the state for the entire batch operation
+        mIsProcessingBatch = true;
+        mBatchProcessingAlgorithm = mCurrentActiveAlgorithmPtr;
+        
+        // Disable UI controls here
+        if (GetUI()) {
+            // GetUI()->GetControlWithTag(kProcessButtonTag)->SetDisabled(true);
+            GetUI()->SetAllControlsDirty();
+        }
 
-    if (mode != Mode::Preview) {
+        // 3. Begin a single Undo block for the whole batch
+        ReaProject* project = GetItemProjectContext(mProcessingQueue.front());
+        Undo_BeginBlock2(project);
+
+        // 4. Kick off the first item in the queue
+        StartNextItemInQueue();
+    }
+}
+
+void ReacomaExtension::StartNextItemInQueue()
+{
+    // MODIFIED: This new helper function is the heart of the queue logic.
+
+    // Check if the queue is empty, which means the batch is complete.
+    if (mProcessingQueue.empty())
+    {
+        ShowConsoleMsg("Reacoma: Batch processing complete.\n");
+        
+        // End the single Undo block
+        ReaProject* project = GetItemProjectContext(mCurrentlyProcessingItem); // Use last item for context
+        Undo_EndBlock2(project, "Reacoma: Process Batch", -1);
+
+        // Reset all state
+        mIsProcessingBatch = false;
+        mBatchProcessingAlgorithm = nullptr;
+        mCurrentlyProcessingItem = nullptr;
+        mTotalQueueSize = 0;
+        mQueueProgress = 0;
+
+        // Re-enable UI controls
+        if (GetUI()) {
+            // GetUI()->GetControlWithTag(kProcessButtonTag)->SetDisabled(false);
+            GetUI()->SetAllControlsDirty();
+        }
+        
         UpdateArrange();
         UpdateTimeline();
+        return;
+    }
+
+    // Get the next item from the front of the queue
+    mCurrentlyProcessingItem = mProcessingQueue.front();
+    mProcessingQueue.pop_front();
+    mQueueProgress++;
+
+    // Start processing the current item
+    if (mCurrentlyProcessingItem && mBatchProcessingAlgorithm)
+    {
+        char msg[128];
+        snprintf(msg, sizeof(msg), "Reacoma: Processing item %d of %d...\n", mQueueProgress, mTotalQueueSize);
+        ShowConsoleMsg(msg);
+        
+        if (!mBatchProcessingAlgorithm->StartProcessItemAsync(mCurrentlyProcessingItem))
+        {
+            ShowConsoleMsg("Reacoma: Failed to start processing item. Skipping.\n");
+            mCurrentlyProcessingItem = nullptr; // Clear the failed item
+            StartNextItemInQueue(); // Immediately try to start the next one
+        }
     }
 }
 
@@ -311,13 +348,27 @@ void ReacomaExtension::OnParamChangeUI(int paramIdx, EParamSource source)
 
 void ReacomaExtension::OnIdle()
 {
-    if (GetUI() && !GetUI()->ControlIsCaptured())
+    // MODIFIED: This function now polls the *currently active item* and starts the next one upon completion.
+
+    // If we're not running a batch or if there isn't an item actively processing, do nothing.
+    if (!mIsProcessingBatch || !mCurrentlyProcessingItem || !mBatchProcessingAlgorithm) {
+        return;
+    }
+
+    // Check if the currently active item has finished its background task.
+    if (mBatchProcessingAlgorithm->IsFinished())
     {
-        // Idle tasks. Called every 20ms
-        // Call the new SetupUI function to re-layout the UI
-        if (mNeedsLayout) {
-//            SetupUI(GetUI());
+        // Finalize the results for the completed item.
+        bool success = mBatchProcessingAlgorithm->FinalizeProcess(mCurrentlyProcessingItem);
+        if (!success) {
+            ShowConsoleMsg("Reacoma: Finalization failed for an item.\n");
         }
+        
+        // The item is done, so clear the pointer.
+        mCurrentlyProcessingItem = nullptr;
+
+        // Immediately try to process the next item in the queue.
+        StartNextItemInQueue();
     }
 }
 
@@ -338,12 +389,5 @@ void ReacomaExtension::SetAlgorithmChoice(EAlgorithmChoice choice, bool triggerU
         default:
             mCurrentActiveAlgorithmPtr = nullptr;
             break;
-    }
-
-    if (triggerUIRelayout)
-    {
-        mNeedsLayout = true;
-//        auto pg = GetUI();
-//        LayoutUI(pg);
     }
 }

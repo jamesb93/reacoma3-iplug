@@ -3,6 +3,9 @@
 #include "ReaperExt_include_in_plug_hdr.h"
 #include "reaper_plugin.h"
 #include <memory>
+#include <vector>
+#include <deque> // NEW: For using a queue
+
 #include "Algorithms/NoveltySliceAlgorithm.h"
 #include "Algorithms/HPSSAlgorithm.h"
 #include "Algorithms/NMFAlgorithm.h"
@@ -29,7 +32,7 @@ public:
         kNMF,
         kNumAlgorithmChoices
     };
-        
+            
     ReacomaExtension(reaper_plugin_info_t* pRec);
     void OnUIClose() override;
     void Process(Mode mode, bool force);
@@ -46,6 +49,8 @@ private:
     bool UpdateSelectedItems(bool force);
     void SetAlgorithmChoice(EAlgorithmChoice choice, bool triggerUIRelayout);
     void SetupUI(IGraphics* pGraphics);
+
+    void StartNextItemInQueue();
     
     int mPrevTrackCount = 0;
     int mGUIToggle = 0;
@@ -57,9 +62,20 @@ private:
     int mNumSelectedItems = 0;
     
     std::vector<MediaItem*> mSelectedItems;
-    bool mIsProcessingAsync = false;
 
     IAlgorithm* mCurrentActiveAlgorithmPtr = nullptr;
     EAlgorithmChoice mCurrentAlgorithmChoice = kNoveltySlice;
-    bool mNeedsLayout = false;
+    
+    // MODIFIED: State variables are now for managing a queue of items
+    bool mIsProcessingBatch = false; // Renamed for clarity
+    IAlgorithm* mBatchProcessingAlgorithm = nullptr; // Renamed for clarity
+    MediaItem* mCurrentlyProcessingItem = nullptr; // Tracks the single item being processed now
+    std::deque<MediaItem*> mProcessingQueue; // The queue of items waiting to be processed
+    int mTotalQueueSize = 0;
+    int mQueueProgress = 0;
+    
+    // WAS:
+    // bool mIsProcessingAsync = false;
+    // IAlgorithm* mAsyncProcessingAlgorithm = nullptr;
+    // MediaItem* mAsyncProcessingItem = nullptr;
 };

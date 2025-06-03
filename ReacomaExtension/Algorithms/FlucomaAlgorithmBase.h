@@ -2,11 +2,13 @@
 
 #include "IAlgorithm.h"
 #include "../VectorBufferAdaptor.h"
+#include "../../dependencies/flucoma-core/include/flucoma/clients/common/FluidBaseClient.hpp"
 #include "../../dependencies/flucoma-core/include/flucoma/clients/common/FluidContext.hpp"
 #include "../../dependencies/flucoma-core/include/flucoma/clients/common/Result.hpp"
 #include "../../dependencies/flucoma-core/include/flucoma/clients/common/ParameterTypes.hpp"
 #include <iomanip>
 #include <filesystem>
+#include <sstream>
 #include "wdltypes.h"
 #include "reaper_plugin_functions.h"
 
@@ -27,9 +29,10 @@ public:
 
     virtual ~FlucomaAlgorithm() override = default;
 
-    bool ProcessItem(MediaItem* item) override final {
+    bool StartProcessItemAsync(MediaItem* item) override final {
         if (!item || !mApiProvider) return false;
-
+        mIsFinishedFlag = false;
+        
         MediaItem_Take* take = GetActiveTake(item);
         if (!take) return false;
 
@@ -61,17 +64,56 @@ public:
         std::vector<float> allChannelsAsFloat(allChannelsAsDouble.begin(), allChannelsAsDouble.end());
         auto inputBuffer = InputBufferT::type(new fluid::VectorBufferAdaptor(allChannelsAsFloat, numChannels, frameCount, sampleRate));
 
+        // NEW: Store context needed for FinalizeProcess
+        mItemForAsync = item;
+        mTakeForAsync = take;
+        mNumChannelsForAsync = numChannels;
+        mSampleRateForAsync = sampleRate;
+
+        // This calls the derived class's implementation (e.g., NoveltySliceAlgorithm::DoProcess)
+        // This is where mClient.setSynchronous(false) must be called.
         if (!DoProcess(inputBuffer, numChannels, frameCount, sampleRate)) {
             return false;
         }
-        
-        if (!HandleResults(item, take, numChannels, sampleRate)) {
-            return false;
-        }
 
-        UpdateTimeline();
         return true;
     }
+
+    bool IsFinished() override final {
+        if (mIsFinishedFlag) return true;
+        Result result;
+        ProcessState processState = mClient.checkProgress(result);
+        double progress = mClient.progress();
+        std::stringstream ss;
+        ss << progress;
+        const char* str = ss.str().c_str();
+        ShowConsoleMsg(str);
+        if (processState == fluid::client::ProcessState::kDone ||
+            processState == fluid::client::ProcessState::kDoneStillProcessing) {
+                mIsFinishedFlag = true;
+            }
+        return mIsFinishedFlag;
+    }
+
+    // NEW: Method to handle the results after the task is complete
+    bool FinalizeProcess(MediaItem* item) override final {
+        // Verification check
+        if (!mItemForAsync || item != mItemForAsync) return false;
+        
+        // Use the stored context from when StartProcessItemAsync was called
+        bool success = HandleResults(mItemForAsync, mTakeForAsync, mNumChannelsForAsync, mSampleRateForAsync);
+        
+        // Clean up context state
+        mItemForAsync = nullptr;
+        mTakeForAsync = nullptr;
+        
+        if(success) {
+            UpdateTimeline();
+        }
+        
+        return success;
+    }
+
 
 protected:
     virtual bool DoProcess(InputBufferT::type& sourceBuffer, int numChannels, int frameCount, int sampleRate) = 0;
@@ -81,6 +123,13 @@ protected:
     FluidContext mContext;
     typename ClientType::ParamSetType mParams;
     ClientType mClient;
+
+private:
+    MediaItem* mItemForAsync = nullptr;
+    MediaItem_Take* mTakeForAsync = nullptr;
+    int mNumChannelsForAsync = 0;
+    int mSampleRateForAsync = 0;
+    bool mIsFinishedFlag = false;
 };
 
 template <typename ClientType>

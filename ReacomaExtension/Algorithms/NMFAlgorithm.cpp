@@ -36,15 +36,11 @@ bool NMFAlgorithm::DoProcess(InputBufferT::type& sourceBuffer, int numChannels, 
     mParams.template set<13>(fluid::client::FFTParams(1024, -1, -1), nullptr);
 
     mClient = NRTThreadedNMFClient(mParams, mContext);
-    mClient.setSynchronous(true);
+    mClient.setSynchronous(false);
     mClient.enqueue(mParams);
     Result result = mClient.process();
 
-    if (!result.ok()) {
-        ShowConsoleMsg("NMF processing failed.\n");
-        return false;
-    }
-    return true;
+    return result.ok();
 }
 
 bool NMFAlgorithm::HandleResults(MediaItem* item, MediaItem_Take* take, int numChannels, int sampleRate) {
