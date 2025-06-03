@@ -1,6 +1,7 @@
 #include "NMFAlgorithm.h"
 #include "ReacomaExtension.h"
 #include "IPlugParameter.h"
+#include "reaper_plugin.h"
 
 NMFAlgorithm::NMFAlgorithm(ReacomaExtension* apiProvider)
     : AudioOutputAlgorithm<NRTThreadedNMFClient>(apiProvider) {}
@@ -34,6 +35,7 @@ bool NMFAlgorithm::DoProcess(InputBufferT::type& sourceBuffer, int numChannels, 
     mParams.template set<12>(iterationsParam, nullptr);
     mParams.template set<13>(fluid::client::FFTParams(1024, -1, -1), nullptr);
 
+    mClient = NRTThreadedNMFClient(mParams, mContext);
     mClient.enqueue(mParams);
     Result result = mClient.process();
 

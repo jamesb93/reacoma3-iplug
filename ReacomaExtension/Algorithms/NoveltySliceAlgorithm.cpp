@@ -1,7 +1,7 @@
 #include "NoveltySliceAlgorithm.h"
-#include "ReacomaExtension.h"
 #include "IPlugParameter.h"
 #include "FlucomaAlgorithmBase.h"
+#include "ReacomaExtension.h"
 
 NoveltySliceAlgorithm::NoveltySliceAlgorithm(ReacomaExtension* apiProvider)
     : FlucomaAlgorithm<NRTThreadingNoveltySliceClient>(apiProvider) {}
@@ -61,6 +61,7 @@ bool NoveltySliceAlgorithm::DoProcess(InputBufferT::type& sourceBuffer, int numC
     mParams.template set<10>(LongT::type(static_cast<long>(minslicelength)), nullptr); // mininteronsetlength
     mParams.template set<11>(fluid::client::FFTParams(1024, -1, -1), nullptr); // fftsettings
     
+    mClient = NRTThreadingNoveltySliceClient(mParams, mContext);
     mClient.enqueue(mParams);
     Result result = mClient.process();
 

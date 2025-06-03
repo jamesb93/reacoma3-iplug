@@ -7,6 +7,8 @@
 #include "../../dependencies/flucoma-core/include/flucoma/clients/common/ParameterTypes.hpp"
 #include <iomanip>
 #include <filesystem>
+#include "wdltypes.h"
+#include "reaper_plugin_functions.h"
 
 using namespace fluid;
 using namespace client;
@@ -22,12 +24,11 @@ public:
           mParams{ClientType::getParameterDescriptors(), FluidDefaultAllocator()},
           mClient{mParams, mContext}
     {
-        mClient.setSynchronous(true); // Ideal for REAPER integration
+        mClient.setSynchronous(true);
     }
 
     virtual ~FlucomaAlgorithm() override = default;
 
-    // The "Template Method"
     bool ProcessItem(MediaItem* item) override final {
         if (!item || !mApiProvider) return false;
 
@@ -50,7 +51,6 @@ public:
 
         if (frameCount <= 0 || numChannels <= 0) return false;
         
-        // Prepare audio buffer
         std::vector<double> allChannelsAsDouble(frameCount * numChannels);
         PCM_source_transfer_t transfer{};
         transfer.time_s = takeOffset;
@@ -63,12 +63,10 @@ public:
         std::vector<float> allChannelsAsFloat(allChannelsAsDouble.begin(), allChannelsAsDouble.end());
         auto inputBuffer = InputBufferT::type(new fluid::VectorBufferAdaptor(allChannelsAsFloat, numChannels, frameCount, sampleRate));
 
-        // Defer algorithm-specific processing to the derived class
         if (!DoProcess(inputBuffer, numChannels, frameCount, sampleRate)) {
             return false;
         }
         
-        // Defer result handling to the derived class
         if (!HandleResults(item, take, numChannels, sampleRate)) {
             return false;
         }
@@ -90,7 +88,7 @@ protected:
 template <typename ClientType>
 class AudioOutputAlgorithm : public FlucomaAlgorithm<ClientType> {
 protected:
-    using FlucomaAlgorithm<ClientType>::mApiProvider; // Make base members visible
+    using FlucomaAlgorithm<ClientType>::mApiProvider;
     
     AudioOutputAlgorithm(ReacomaExtension* apiProvider)
         : FlucomaAlgorithm<ClientType>(apiProvider) {}
