@@ -318,6 +318,7 @@ void ReacomaExtension::OnIdle() {
     if (mIsCancellationRequested) {
         for (auto &job : mActiveJobs) {
             job->Cancel();
+            SetMediaItemInfo_Value(job->mItem, "C_LOCK", false);
         }
 
         mPendingItemsQueue.clear();
