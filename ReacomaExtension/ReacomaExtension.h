@@ -28,6 +28,7 @@
 #include "Algorithms/TransientSliceAlgorithm.h"
 #include "Algorithms/NoveltySliceAlgorithm.h"
 #include "Algorithms/OnsetSliceAlgorithm.h"
+#include "Algorithms/AmpGateAlgorithm.h"
 
 class IAlgorithm;
 class ProcessingJob;
@@ -49,6 +50,7 @@ class ReacomaExtension : public ReaperExtBase {
         kHPSS,
         kNMF,
         kTransients,
+        kAmpGate,
         kNumAlgorithmChoices
     };
 
@@ -72,6 +74,9 @@ class ReacomaExtension : public ReaperExtBase {
     OnsetSliceAlgorithm *GetOnsetSliceAlgorithm() const {
         return mOnsetSliceAlgorithm.get();
     }
+    AmpGateAlgorithm *GetAmpGateAlgorithm() const {
+        return mAmpGateAlgorithm.get();
+    }
 
   private:
     std::unique_ptr<NoveltySliceAlgorithm> mNoveltyAlgorithm;
@@ -80,6 +85,7 @@ class ReacomaExtension : public ReaperExtBase {
     std::unique_ptr<TransientAlgorithm> mTransientsAlgorithm;
     std::unique_ptr<OnsetSliceAlgorithm> mOnsetSliceAlgorithm;
     std::unique_ptr<TransientSliceAlgorithm> mTransientSliceAlgorithm;
+    std::unique_ptr<AmpGateAlgorithm> mAmpGateAlgorithm;
 
     void OnParamChangeUI(int paramIdx, EParamSource source) override;
     void OnIdle() override;

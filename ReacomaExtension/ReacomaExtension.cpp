@@ -102,6 +102,9 @@ ReacomaExtension::ReacomaExtension(reaper_plugin_info_t *pRec)
     mTransientSliceAlgorithm = std::make_unique<TransientSliceAlgorithm>(this);
     mTransientSliceAlgorithm->RegisterParameters();
 
+    mAmpGateAlgorithm = std::make_unique<AmpGateAlgorithm>(this);
+    mAmpGateAlgorithm->RegisterParameters();
+
     SetAlgorithmChoice(kNoveltySlice, false);
 
     mLayoutFunc = [&](IGraphics *pGraphics) { SetupUI(pGraphics); };
@@ -430,6 +433,9 @@ void ReacomaExtension::SetAlgorithmChoice(EAlgorithmChoice choice,
         break;
     case kTransients:
         mCurrentActiveAlgorithmPtr = mTransientsAlgorithm.get();
+        break;
+    case kAmpGate:
+        mCurrentActiveAlgorithmPtr = mAmpGateAlgorithm.get();
         break;
     default:
         mCurrentActiveAlgorithmPtr = nullptr;

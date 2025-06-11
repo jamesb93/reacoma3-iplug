@@ -63,6 +63,10 @@ ProcessingJob::Create(ReacomaExtension::EAlgorithmChoice algoChoice,
         algorithm = std::make_unique<TransientSliceAlgorithm>(provider);
         prototypeAlgorithm = provider->GetTransientSliceAlgorithm();
         break;
+    case ReacomaExtension::kAmpGate:
+        algorithm = std::make_unique<AmpGateAlgorithm>(provider);
+        prototypeAlgorithm = provider->GetTransientsAlgorithm();
+        break;
     }
 
     if (algorithm && prototypeAlgorithm) {
