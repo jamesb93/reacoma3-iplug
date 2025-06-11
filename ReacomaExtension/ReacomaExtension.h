@@ -22,9 +22,12 @@
 #include "Components/ReacomaSegmented.h"
 #include "Components/ReacomaSlider.h"
 
-#include "Algorithms/NoveltySliceAlgorithm.h"
 #include "Algorithms/HPSSAlgorithm.h"
 #include "Algorithms/NMFAlgorithm.h"
+#include "Algorithms/TransientAlgorithm.h"
+#include "Algorithms/TransientSliceAlgorithm.h"
+#include "Algorithms/NoveltySliceAlgorithm.h"
+#include "Algorithms/OnsetSliceAlgorithm.h"
 
 class IAlgorithm;
 class ProcessingJob;
@@ -41,8 +44,11 @@ class ReacomaExtension : public ReaperExtBase {
 
     enum EAlgorithmChoice {
         kNoveltySlice = 0,
+        kOnsetSlice,
+        kTransientSlice,
         kHPSS,
         kNMF,
+        kTransients,
         kNumAlgorithmChoices
     };
 
@@ -57,11 +63,23 @@ class ReacomaExtension : public ReaperExtBase {
     }
     HPSSAlgorithm *GetHPSSAlgorithm() const { return mHPSSAlgorithm.get(); }
     NMFAlgorithm *GetNMFAlgorithm() const { return mNMFAlgorithm.get(); }
+    TransientAlgorithm *GetTransientsAlgorithm() const {
+        return mTransientsAlgorithm.get();
+    }
+    TransientSliceAlgorithm *GetTransientSliceAlgorithm() const {
+        return mTransientSliceAlgorithm.get();
+    }
+    OnsetSliceAlgorithm *GetOnsetSliceAlgorithm() const {
+        return mOnsetSliceAlgorithm.get();
+    }
 
   private:
     std::unique_ptr<NoveltySliceAlgorithm> mNoveltyAlgorithm;
     std::unique_ptr<HPSSAlgorithm> mHPSSAlgorithm;
     std::unique_ptr<NMFAlgorithm> mNMFAlgorithm;
+    std::unique_ptr<TransientAlgorithm> mTransientsAlgorithm;
+    std::unique_ptr<OnsetSliceAlgorithm> mOnsetSliceAlgorithm;
+    std::unique_ptr<TransientSliceAlgorithm> mTransientSliceAlgorithm;
 
     void OnParamChangeUI(int paramIdx, EParamSource source) override;
     void OnIdle() override;

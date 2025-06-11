@@ -2,6 +2,9 @@
 #include "NoveltySliceAlgorithm.h"
 #include "HPSSAlgorithm.h"
 #include "NMFAlgorithm.h"
+#include "OnsetSliceAlgorithm.h"
+#include "TransientSliceAlgorithm.h"
+#include "TransientAlgorithm.h"
 
 ProcessingJob::ProcessingJob(std::unique_ptr<IAlgorithm> algorithm,
                              MediaItem *item)
@@ -47,6 +50,18 @@ ProcessingJob::Create(ReacomaExtension::EAlgorithmChoice algoChoice,
     case ReacomaExtension::kNMF:
         algorithm = std::make_unique<NMFAlgorithm>(provider);
         prototypeAlgorithm = provider->GetNMFAlgorithm();
+        break;
+    case ReacomaExtension::kOnsetSlice:
+        algorithm = std::make_unique<OnsetSliceAlgorithm>(provider);
+        prototypeAlgorithm = provider->GetOnsetSliceAlgorithm();
+        break;
+    case ReacomaExtension::kTransients:
+        algorithm = std::make_unique<TransientAlgorithm>(provider);
+        prototypeAlgorithm = provider->GetTransientsAlgorithm();
+        break;
+    case ReacomaExtension::kTransientSlice:
+        algorithm = std::make_unique<TransientSliceAlgorithm>(provider);
+        prototypeAlgorithm = provider->GetTransientSliceAlgorithm();
         break;
     }
 

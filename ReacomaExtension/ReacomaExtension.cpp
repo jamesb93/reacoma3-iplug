@@ -77,8 +77,12 @@ ReacomaExtension::ReacomaExtension(reaper_plugin_info_t *pRec)
         ->InitEnum("Algorithm", kNoveltySlice, kNumAlgorithmChoices);
     GetParam(kParamAlgorithmChoice)
         ->SetDisplayText(kNoveltySlice, "Novelty Slice");
+    GetParam(kParamAlgorithmChoice)->SetDisplayText(kOnsetSlice, "Onset Slice");
+    GetParam(kParamAlgorithmChoice)
+        ->SetDisplayText(kTransientSlice, "Transients");
     GetParam(kParamAlgorithmChoice)->SetDisplayText(kHPSS, "HPSS");
     GetParam(kParamAlgorithmChoice)->SetDisplayText(kNMF, "NMF");
+    GetParam(kParamAlgorithmChoice)->SetDisplayText(kTransients, "Transients");
 
     mNoveltyAlgorithm = std::make_unique<NoveltySliceAlgorithm>(this);
     mNoveltyAlgorithm->RegisterParameters();
@@ -88,6 +92,15 @@ ReacomaExtension::ReacomaExtension(reaper_plugin_info_t *pRec)
 
     mNMFAlgorithm = std::make_unique<NMFAlgorithm>(this);
     mNMFAlgorithm->RegisterParameters();
+
+    mOnsetSliceAlgorithm = std::make_unique<OnsetSliceAlgorithm>(this);
+    mOnsetSliceAlgorithm->RegisterParameters();
+
+    mTransientsAlgorithm = std::make_unique<TransientAlgorithm>(this);
+    mTransientsAlgorithm->RegisterParameters();
+
+    mTransientSliceAlgorithm = std::make_unique<TransientSliceAlgorithm>(this);
+    mTransientSliceAlgorithm->RegisterParameters();
 
     SetAlgorithmChoice(kNoveltySlice, false);
 
@@ -408,6 +421,15 @@ void ReacomaExtension::SetAlgorithmChoice(EAlgorithmChoice choice,
         break;
     case kNMF:
         mCurrentActiveAlgorithmPtr = mNMFAlgorithm.get();
+        break;
+    case kOnsetSlice:
+        mCurrentActiveAlgorithmPtr = mOnsetSliceAlgorithm.get();
+        break;
+    case kTransientSlice:
+        mCurrentActiveAlgorithmPtr = mTransientSliceAlgorithm.get();
+        break;
+    case kTransients:
+        mCurrentActiveAlgorithmPtr = mTransientsAlgorithm.get();
         break;
     default:
         mCurrentActiveAlgorithmPtr = nullptr;
