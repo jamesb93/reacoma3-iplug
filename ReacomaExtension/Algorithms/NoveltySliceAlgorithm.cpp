@@ -124,7 +124,6 @@ bool NoveltySliceAlgorithm::HandleResults(MediaItem *item, MediaItem_Take *take,
     if (!reader.exists() || !reader.valid())
         return false;
 
-    // Clear existing markers
     int markerCount = GetNumTakeMarkers(take);
     for (int i = markerCount - 1; i >= 0; i--) {
         DeleteTakeMarker(take, i);

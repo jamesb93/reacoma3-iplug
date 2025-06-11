@@ -39,6 +39,16 @@ bool HPSSAlgorithm::DoProcess(InputBufferT::type &sourceBuffer, int numChannels,
         mApiProvider->GetParam(mBaseParamIdx + HPSSAlgorithm::kPercFilterSize)
             ->Value();
 
+    auto windowSize =
+        mApiProvider->GetParam(mBaseParamIdx + HPSSAlgorithm::kWindowSize)
+            ->Value();
+    auto hopSize =
+        mApiProvider->GetParam(mBaseParamIdx + HPSSAlgorithm::kHopSize)
+            ->Value();
+    auto fftSize =
+        mApiProvider->GetParam(mBaseParamIdx + HPSSAlgorithm::kFFTSize)
+            ->Value();
+
     auto harmMemoryBuffer =
         std::make_shared<MemoryBufferAdaptor>(1, frameCount, sampleRate);
     auto percMemoryBuffer =
@@ -66,7 +76,8 @@ bool HPSSAlgorithm::DoProcess(InputBufferT::type &sourceBuffer, int numChannels,
     mParams.template set<10>(LongT::type(0), nullptr);
     mParams.template set<11>(FloatPairsArrayT::type(0, 1, 1, 1), nullptr);
     mParams.template set<12>(FloatPairsArrayT::type(1, 0, 1, 1), nullptr);
-    mParams.template set<13>(fluid::client::FFTParams(1024, -1, -1), nullptr);
+    mParams.template set<13>(
+        fluid::client::FFTParams(windowSize, hopSize, fftSize), nullptr);
 
     mClient = NRTThreadedHPSSClient(mParams, mContext);
     mClient.setSynchronous(false);

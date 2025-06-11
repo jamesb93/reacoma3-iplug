@@ -34,6 +34,14 @@ bool NMFAlgorithm::DoProcess(InputBufferT::type &sourceBuffer, int numChannels,
     auto iterationsParam =
         mApiProvider->GetParam(mBaseParamIdx + kIterations)->Value();
 
+    auto windowSize =
+        mApiProvider->GetParam(mBaseParamIdx + NMFAlgorithm::kWindowSize)
+            ->Value();
+    auto hopSize =
+        mApiProvider->GetParam(mBaseParamIdx + NMFAlgorithm::kHopSize)->Value();
+    auto fftSize =
+        mApiProvider->GetParam(mBaseParamIdx + NMFAlgorithm::kFFTSize)->Value();
+
     auto resynthMemoryBuffer = std::make_shared<MemoryBufferAdaptor>(
         numChannels * componentsParam, frameCount, sampleRate);
     auto resynthOutputBuffer =
@@ -44,11 +52,12 @@ bool NMFAlgorithm::DoProcess(InputBufferT::type &sourceBuffer, int numChannels,
     mParams.template set<2>(LongT::type(-1), nullptr);
     mParams.template set<3>(LongT::type(0), nullptr);
     mParams.template set<4>(LongT::type(-1), nullptr);
-    mParams.template set<5>(std::move(resynthOutputBuffer), nullptr); // resynth
+    mParams.template set<5>(std::move(resynthOutputBuffer), nullptr);
     mParams.template set<6>(LongT::type(1), nullptr);
     mParams.template set<11>(componentsParam, nullptr);
     mParams.template set<12>(iterationsParam, nullptr);
-    mParams.template set<13>(fluid::client::FFTParams(1024, -1, -1), nullptr);
+    mParams.template set<13>(
+        fluid::client::FFTParams(windowSize, hopSize, fftSize), nullptr);
 
     mClient = NRTThreadedNMFClient(mParams, mContext);
     mClient.setSynchronous(false);
