@@ -106,13 +106,31 @@ bool AmpGateAlgorithm::HandleResults(MediaItem *item, MediaItem_Take *take,
     }
 
     double itemLength = GetMediaItemInfo_Value(item, "D_LENGTH");
-    auto view = reader.samps(0);
-    for (fluid::index i = 0; i < view.size(); i++) {
-        if (view(i) > 0) {
+    auto onsetView = reader.samps(0);
+    for (fluid::index i = 0; i < onsetView.size(); i++) {
+        if (onsetView(i) > 0) {
             double markerTimeInSeconds =
-                static_cast<double>(view(i)) / sampleRate;
+                static_cast<double>(onsetView(i)) / sampleRate;
             if (markerTimeInSeconds < itemLength) {
                 SetTakeMarker(take, -1, "", &markerTimeInSeconds, nullptr);
+            }
+        }
+    }
+
+    // Offset marker colour
+    int r = 255;
+    int g = 0;
+    int b = 0;
+
+    int color = ColorToNative(r, g, b) | 0x1000000;
+
+    auto offsetView = reader.samps(1);
+    for (fluid::index i = 0; i < offsetView.size(); i++) {
+        if (offsetView(i) > 0) {
+            double markerTimeInSeconds =
+                static_cast<double>(offsetView(i)) / sampleRate;
+            if (markerTimeInSeconds < itemLength) {
+                SetTakeMarker(take, -1, "", &markerTimeInSeconds, &color);
             }
         }
     }
