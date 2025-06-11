@@ -83,6 +83,7 @@ ReacomaExtension::ReacomaExtension(reaper_plugin_info_t *pRec)
     GetParam(kParamAlgorithmChoice)->SetDisplayText(kHPSS, "HPSS");
     GetParam(kParamAlgorithmChoice)->SetDisplayText(kNMF, "NMF");
     GetParam(kParamAlgorithmChoice)->SetDisplayText(kTransients, "Transients");
+    GetParam(kParamAlgorithmChoice)->SetDisplayText(kAmpGate, "Amp Gate");
 
     mNoveltyAlgorithm = std::make_unique<NoveltySliceAlgorithm>(this);
     mNoveltyAlgorithm->RegisterParameters();
