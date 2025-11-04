@@ -1,7 +1,12 @@
 #include "IControl.h"
 #include "IControls.h"
 #include "IGraphicsStructs.h"
+#include <memory>
 #define REAPERAPI_IMPLEMENT
+
+#if !defined(_WIN32) && !defined(REAPER_PLUGIN_DLL_EXPORT)
+#define REAPER_PLUGIN_DLL_EXPORT __attribute__((visibility("default")))
+#endif
 
 #include "ReacomaExtension.h"
 #include "ReaperExt_include_in_plug_src.h"
@@ -30,6 +35,12 @@ template <ReacomaExtension::Mode M> struct ProcessAction {
             ->Process(M, true);
     }
 };
+
+extern "C" {
+REAPER_PLUGIN_DLL_EXPORT void RCM_Test() {
+    ShowConsoleMsg("whatsup: RCM_Test was called successfully!\n");
+}
+}
 
 ReacomaExtension::ReacomaExtension(reaper_plugin_info_t *pRec)
     : ReaperExtBase(pRec) {
@@ -72,6 +83,20 @@ ReacomaExtension::ReacomaExtension(reaper_plugin_info_t *pRec)
     IMPAPI(GetProjectPathEx);
     IMPAPI(GetSetProjectInfo_String);
     IMPAPI(SetMediaItemInfo_Value);
+    IMPAPI(ShowConsoleMsg);
+
+    ShowConsoleMsg("I LOADED.");
+
+    int apiRegResult = pRec->Register("API_RCM_Test", (void *)RCM_Test);
+
+    if (apiRegResult == 0) {
+        ShowConsoleMsg("ERROR: Failed to register API_RCM_Test.\n");
+    } else {
+        ShowConsoleMsg("SUCCESS: Registered API_RCM_Test.\n");
+    }
+
+    pRec->Register("APIdef_RCM_Test",
+                   (void *)"void\0\0\0A test function for the RCM extension.");
 
     mMakeGraphicsFunc = [&]() {
         return MakeGraphics(*this, PLUG_WIDTH, PLUG_HEIGHT, PLUG_FPS);
