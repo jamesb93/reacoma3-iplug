@@ -25,14 +25,6 @@ class ReacomaParamTextControl;
 } // namespace igraphics
 } // namespace iplug
 
-class HPSSAlgorithm;
-class NMFAlgorithm;
-class TransientAlgorithm;
-class TransientSliceAlgorithm;
-class NoveltySliceAlgorithm;
-class OnsetSliceAlgorithm;
-class AmpGateAlgorithm;
-class AmpSliceAlgorithm;
 struct ReacomaTheme;
 
 class IAlgorithm;
@@ -71,41 +63,12 @@ public:
     void SetAlgorithmChoice(EAlgorithmChoice choice, bool triggerUIRelayout);
     void UpdateAutoProcessButtonState();
 
-    NoveltySliceAlgorithm *GetNoveltySliceAlgorithm() const {
-        return mNoveltyAlgorithm.get();
-    }
-    HPSSAlgorithm *GetHPSSAlgorithm() const { return mHPSSAlgorithm.get(); }
-    NMFAlgorithm *GetNMFAlgorithm() const { return mNMFAlgorithm.get(); }
-    TransientAlgorithm *GetTransientsAlgorithm() const {
-        return mTransientsAlgorithm.get();
-    }
-    TransientSliceAlgorithm *GetTransientSliceAlgorithm() const {
-        return mTransientSliceAlgorithm.get();
-    }
-    OnsetSliceAlgorithm *GetOnsetSliceAlgorithm() const {
-        return mOnsetSliceAlgorithm.get();
-    }
-    AmpGateAlgorithm *GetAmpGateAlgorithm() const {
-        return mAmpGateAlgorithm.get();
-    }
-    AmpSliceAlgorithm *GetAmpSliceAlgorithm() const {
-        return mAmpSliceAlgorithm.get();
-    }
-
 private:
     bool mUIRelayoutIsNeeded = false;
 
     std::unique_ptr<ReacomaTheme> mTheme;
 
-    std::unique_ptr<NoveltySliceAlgorithm> mNoveltyAlgorithm;
-    std::unique_ptr<HPSSAlgorithm> mHPSSAlgorithm;
-    std::unique_ptr<NMFAlgorithm> mNMFAlgorithm;
-    std::unique_ptr<TransientAlgorithm> mTransientsAlgorithm;
-    std::unique_ptr<OnsetSliceAlgorithm> mOnsetSliceAlgorithm;
-    std::unique_ptr<TransientSliceAlgorithm> mTransientSliceAlgorithm;
-    std::unique_ptr<AmpGateAlgorithm> mAmpGateAlgorithm;
-    std::unique_ptr<AmpSliceAlgorithm> mAmpSliceAlgorithm;
-    std::vector<IAlgorithm *> mAllAlgorithms;
+    std::vector<std::unique_ptr<IAlgorithm>> mAlgorithms;
 
     void OnParamChangeUI(int paramIdx, EParamSource source) override;
     void OnIdle() override;

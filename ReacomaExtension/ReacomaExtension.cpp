@@ -92,38 +92,20 @@ ReacomaExtension::ReacomaExtension(reaper_plugin_info_t *pRec)
     GetParam(kParamAlgorithmChoice)
         ->InitEnum("Algorithm", kNoveltySlice, parameterLabels);
 
-    mNoveltyAlgorithm = std::make_unique<NoveltySliceAlgorithm>(this);
-    mNoveltyAlgorithm->RegisterParameters();
+    // Initialize algorithms in the order defined by EAlgorithmChoice
+    mAlgorithms.reserve(kNumAlgorithmChoices);
+    mAlgorithms.push_back(std::make_unique<NoveltySliceAlgorithm>(this));
+    mAlgorithms.push_back(std::make_unique<AmpSliceAlgorithm>(this));
+    mAlgorithms.push_back(std::make_unique<AmpGateAlgorithm>(this));
+    mAlgorithms.push_back(std::make_unique<OnsetSliceAlgorithm>(this));
+    mAlgorithms.push_back(std::make_unique<TransientSliceAlgorithm>(this));
+    mAlgorithms.push_back(std::make_unique<HPSSAlgorithm>(this));
+    mAlgorithms.push_back(std::make_unique<NMFAlgorithm>(this));
+    mAlgorithms.push_back(std::make_unique<TransientAlgorithm>(this));
 
-    mHPSSAlgorithm = std::make_unique<HPSSAlgorithm>(this);
-    mHPSSAlgorithm->RegisterParameters();
-
-    mNMFAlgorithm = std::make_unique<NMFAlgorithm>(this);
-    mNMFAlgorithm->RegisterParameters();
-
-    mOnsetSliceAlgorithm = std::make_unique<OnsetSliceAlgorithm>(this);
-    mOnsetSliceAlgorithm->RegisterParameters();
-
-    mTransientsAlgorithm = std::make_unique<TransientAlgorithm>(this);
-    mTransientsAlgorithm->RegisterParameters();
-
-    mTransientSliceAlgorithm = std::make_unique<TransientSliceAlgorithm>(this);
-    mTransientSliceAlgorithm->RegisterParameters();
-
-    mAmpGateAlgorithm = std::make_unique<AmpGateAlgorithm>(this);
-    mAmpGateAlgorithm->RegisterParameters();
-
-    mAmpSliceAlgorithm = std::make_unique<AmpSliceAlgorithm>(this);
-    mAmpSliceAlgorithm->RegisterParameters();
-
-    mAllAlgorithms.push_back(mNoveltyAlgorithm.get());
-    mAllAlgorithms.push_back(mHPSSAlgorithm.get());
-    mAllAlgorithms.push_back(mNMFAlgorithm.get());
-    mAllAlgorithms.push_back(mOnsetSliceAlgorithm.get());
-    mAllAlgorithms.push_back(mTransientsAlgorithm.get());
-    mAllAlgorithms.push_back(mTransientSliceAlgorithm.get());
-    mAllAlgorithms.push_back(mAmpGateAlgorithm.get());
-    mAllAlgorithms.push_back(mAmpSliceAlgorithm.get());
+    for (const auto &algo : mAlgorithms) {
+        algo->RegisterParameters();
+    }
 
     SetAlgorithmChoice(kNoveltySlice, false);
 
@@ -524,35 +506,13 @@ void ReacomaExtension::OnIdle() {
 void ReacomaExtension::SetAlgorithmChoice(EAlgorithmChoice choice,
                                           bool triggerUIRelayout) {
     mCurrentAlgorithmChoice = choice;
-    switch (choice) {
-        case kNoveltySlice:
-            mCurrentActiveAlgorithmPtr = mNoveltyAlgorithm.get();
-            break;
-        case kHPSS:
-            mCurrentActiveAlgorithmPtr = mHPSSAlgorithm.get();
-            break;
-        case kNMF:
-            mCurrentActiveAlgorithmPtr = mNMFAlgorithm.get();
-            break;
-        case kOnsetSlice:
-            mCurrentActiveAlgorithmPtr = mOnsetSliceAlgorithm.get();
-            break;
-        case kTransientSlice:
-            mCurrentActiveAlgorithmPtr = mTransientSliceAlgorithm.get();
-            break;
-        case kTransients:
-            mCurrentActiveAlgorithmPtr = mTransientsAlgorithm.get();
-            break;
-        case kAmpGate:
-            mCurrentActiveAlgorithmPtr = mAmpGateAlgorithm.get();
-            break;
-        case kAmpSlice:
-            mCurrentActiveAlgorithmPtr = mAmpSliceAlgorithm.get();
-            break;
-        default:
-            mCurrentActiveAlgorithmPtr = nullptr;
-            break;
+    if (static_cast<size_t>(choice) < mAlgorithms.size()) {
+        mCurrentActiveAlgorithmPtr =
+            mAlgorithms[static_cast<size_t>(choice)].get();
+    } else {
+        mCurrentActiveAlgorithmPtr = nullptr;
     }
+
     if (triggerUIRelayout) {
         mUIRelayoutIsNeeded = true;
     }
@@ -615,7 +575,8 @@ void ReacomaExtension::SaveState() {
     }
 
     // Save all algorithm-specific parameters
-    for (IAlgorithm *pAlgorithm : mAllAlgorithms) {
+    for (const auto &algoPtr : mAlgorithms) {
+        IAlgorithm *pAlgorithm = algoPtr.get();
         if (!pAlgorithm || !pAlgorithm->GetName())
             continue;
 
@@ -675,7 +636,8 @@ void ReacomaExtension::LoadState() {
     }
 
     // Load algorithm-specific parameters
-    for (IAlgorithm *pAlgorithm : mAllAlgorithms) {
+    for (const auto &algoPtr : mAlgorithms) {
+        IAlgorithm *pAlgorithm = algoPtr.get();
         if (!pAlgorithm || !pAlgorithm->GetName())
             continue;
 
