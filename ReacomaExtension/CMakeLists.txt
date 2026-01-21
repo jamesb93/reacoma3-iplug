@@ -144,7 +144,7 @@ set(REACOMA_SOURCES
     "Algorithms/AmpGateAlgorithm.cpp"
     "Algorithms/AmpGateAlgorithm.h"
     "Algorithms/FlucomaAlgorithmBase.h"
-    "Algorithms/HPPSAlgorithm.cpp"
+    "Algorithms/HPSSAlgorithm.cpp"
     "Algorithms/HPSSAlgorithm.h"
     "Algorithms/IAlgorithm.cpp"
     "Algorithms/IAlgorithm.h"
