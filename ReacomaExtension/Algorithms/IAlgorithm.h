@@ -6,6 +6,8 @@
 class MediaItem;
 class ReacomaExtension;
 
+enum class ProcessingMode { Segment, Regions, ProcessAudio };
+
 struct ParameterDescriptor {
     enum Type { Double, Int, Enum };
     Type type;
@@ -47,6 +49,9 @@ public:
 
     void SyncParameters();
 
+    void SetProcessingMode(ProcessingMode mode) { mProcessingMode = mode; }
+    ProcessingMode GetProcessingMode() const { return mProcessingMode; }
+
     int GetGlobalParamIdx(int algorithmParamEnum) const {
         return mBaseParamIdx + algorithmParamEnum;
     }
@@ -65,4 +70,5 @@ protected:
     ReacomaExtension *mApiProvider;
     int mBaseParamIdx = 0;
     std::vector<double> mParamValues;
+    ProcessingMode mProcessingMode = ProcessingMode::Segment;
 };

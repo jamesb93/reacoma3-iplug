@@ -3,6 +3,7 @@
 #include "ReaperExt_include_in_plug_hdr.h"
 #include "reaper_plugin.h"
 #include "IControl.h"
+#include "IGraphicsStructs.h"
 
 #include "ibmplexmono.hpp"
 #include "roboto.hpp"
@@ -14,7 +15,25 @@
 #include <string>
 #include <vector>
 
-#include "IAlgorithm.h"
+#pragma once
+
+#include "ReaperExt_include_in_plug_hdr.h"
+#include "reaper_plugin.h"
+#include "IControl.h"
+#include "IGraphicsStructs.h"
+
+#include "ibmplexmono.hpp"
+#include "roboto.hpp"
+
+#include <chrono>
+#include <list>
+#include <deque>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "Algorithms/IAlgorithm.h"
+#include "JobManager.h"
 
 namespace iplug {
 namespace igraphics {
@@ -36,9 +55,6 @@ using namespace igraphics;
 class ReacomaExtension : public ReaperExtBase {
 
 public:
-    enum class Mode { Segment, Regions, ProcessAudio };
-    Mode GetCurrentMode() const { return mCurrentProcessingMode; }
-
     enum EParams { kParamAlgorithmChoice = 0, kNumOwnParams };
 
     enum EControlTags { kCtrlTagAlgoChooser = 0 };
@@ -57,7 +73,7 @@ public:
 
     ReacomaExtension(reaper_plugin_info_t *pRec);
     void OnUIClose() override;
-    void Process(Mode mode, bool force);
+    void Process(ProcessingMode mode, bool force);
     void CancelRunningJobs();
     void ResetUIState();
     void SetAlgorithmChoice(EAlgorithmChoice choice, bool triggerUIRelayout);
@@ -67,6 +83,7 @@ private:
     bool mUIRelayoutIsNeeded = false;
 
     std::unique_ptr<ReacomaTheme> mTheme;
+    std::unique_ptr<JobManager> mJobManager;
 
     std::vector<std::unique_ptr<IAlgorithm>> mAlgorithms;
 
@@ -86,7 +103,6 @@ private:
                              const IRECT &bottomUtilityRowBounds,
                              const ReacomaTheme &theme);
     void ManageProcessingJobs();
-    void StartNextItemInQueue();
     void SaveState();
     void LoadState();
     std::string GetSettingsFilePath() const;
@@ -95,25 +111,12 @@ private:
 
     IAlgorithm *mCurrentActiveAlgorithmPtr = nullptr;
     EAlgorithmChoice mCurrentAlgorithmChoice = kNoveltySlice;
-    Mode mCurrentProcessingMode;
-
-    unsigned int mConcurrencyLimit = 1;
-    std::deque<MediaItem *> mPendingItemsQueue;
-    std::list<std::unique_ptr<ProcessingJob>> mActiveJobs;
-    std::deque<std::unique_ptr<ProcessingJob>> mFinalizationQueue;
-    std::deque<MediaItem *> mProcessingQueue;
 
     iplug::igraphics::ReacomaProgressBar *mProgressBar = nullptr;
     iplug::igraphics::ReacomaButton *mCancelButton = nullptr;
     iplug::igraphics::ReacomaButton *mAutoProcessButton = nullptr;
     ITextControl *mProcessingLabel = nullptr;
     int mProcessingLabelIdx = -1;
-    size_t mTotalBatchItems = 0;
-    double mLastReportedProgress = 0.0;
-
-    ReaProject *mBatchUndoProject = nullptr;
-    bool mIsProcessingBatch = false;
-    bool mIsCancellationRequested = false;
 
     // handle different processing modes
     bool mAutoProcessMode = false;

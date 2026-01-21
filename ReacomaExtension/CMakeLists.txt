@@ -131,6 +131,8 @@ set(REACOMA_SOURCES
     # Main project files
     "ReacomaExtension.cpp"
     "ReacomaExtension.h"
+    "JobManager.cpp"
+    "JobManager.h"
     "config.h"
     "VectorBufferAdaptor.cpp"
     "VectorBufferAdaptor.h"

@@ -25,7 +25,7 @@
 #include "Components/ReacomaProgressBar.h"
 #include "Components/ReacomaSegmented.h"
 
-template <ReacomaExtension::Mode M> struct ProcessAction {
+template <ProcessingMode M> struct ProcessAction {
     void operator()(IControl *pCaller) {
         static_cast<ReacomaExtension *>(pCaller->GetDelegate())
             ->Process(M, true);
@@ -36,6 +36,7 @@ ReacomaExtension::ReacomaExtension(reaper_plugin_info_t *pRec)
     : ReaperExtBase(pRec) {
 
     mTheme = std::make_unique<ReacomaTheme>();
+    mJobManager = std::make_unique<JobManager>();
 
     IMPAPI(CountSelectedMediaItems);
     IMPAPI(GetSelectedMediaItem);
@@ -202,16 +203,17 @@ void ReacomaExtension::SetupAlgorithmSelector(IGraphics *pGraphics,
             algorithmSelectorRect,
             [this, pGraphics](IControl *pCaller) {
                 SplashClickActionFunc(pCaller);
-                IPopupMenu menu{
-                    "", {}, [this, pCaller](IPopupMenu *pMenu) {
-                        int itemIndex = pMenu->GetChosenItemIdx();
-                        if (itemIndex > -1) {
-                            GetParam(kParamAlgorithmChoice)->Set(itemIndex);
-                            auto selectedAlgo =
-                                static_cast<EAlgorithmChoice>(itemIndex);
-                            this->SetAlgorithmChoice(selectedAlgo, true);
-                        }
-                    }};
+                static IPopupMenu menu{""};
+
+                menu.SetFunction([this, pCaller](IPopupMenu *pMenu) {
+                    int itemIndex = pMenu->GetChosenItemIdx();
+                    if (itemIndex > -1) {
+                        GetParam(kParamAlgorithmChoice)->Set(itemIndex);
+                        auto selectedAlgo =
+                            static_cast<EAlgorithmChoice>(itemIndex);
+                        this->SetAlgorithmChoice(selectedAlgo, true);
+                    }
+                });
 
                 menu.Clear();
                 IParam *pAlgoParam = GetParam(kParamAlgorithmChoice);
@@ -282,14 +284,16 @@ void ReacomaExtension::SetupActionButtons(IGraphics *pGraphics,
     std::vector<ButtonInfo> buttonsToCreate;
 
     if (mCurrentActiveAlgorithmPtr->SupportsSegmentation()) {
-        buttonsToCreate.push_back({ProcessAction<Mode::Segment>{}, "Segment"});
+        buttonsToCreate.push_back(
+            {ProcessAction<ProcessingMode::Segment>{}, "Segment"});
     }
     if (mCurrentActiveAlgorithmPtr->SupportsRegions()) {
-        buttonsToCreate.push_back({ProcessAction<Mode::Regions>{}, "Regions"});
+        buttonsToCreate.push_back(
+            {ProcessAction<ProcessingMode::Regions>{}, "Regions"});
     }
     if (mCurrentActiveAlgorithmPtr->CreatesTakes()) {
         buttonsToCreate.push_back(
-            {ProcessAction<Mode::ProcessAudio>{}, "Process"});
+            {ProcessAction<ProcessingMode::ProcessAudio>{}, "Process"});
     }
 
     const int numActionButtons = buttonsToCreate.size();
@@ -351,27 +355,24 @@ void ReacomaExtension::UpdateAutoProcessButtonState() {
     }
 }
 
-void ReacomaExtension::Process(Mode mode, bool force) {
-    mCurrentProcessingMode = mode;
-    mConcurrencyLimit = std::thread::hardware_concurrency();
-
-    mPendingItemsQueue.clear();
-
-    for (int i = 0; i < CountSelectedMediaItems(0); ++i) {
-        mPendingItemsQueue.push_back(GetSelectedMediaItem(0, i));
-    }
-
-    mTotalBatchItems = mPendingItemsQueue.size();
-
-    if (mPendingItemsQueue.empty() || mCurrentActiveAlgorithmPtr == nullptr) {
+void ReacomaExtension::Process(ProcessingMode mode, bool force) {
+    if (!mCurrentActiveAlgorithmPtr) {
         return;
     }
 
-    mIsProcessingBatch = true;
-    mIsCancellationRequested = false;
-    mLastReportedProgress = 0.0;
-    mActiveJobs.clear();
-    mFinalizationQueue.clear();
+    // Sync parameters before starting batch
+    mCurrentActiveAlgorithmPtr->SyncParameters();
+
+    std::vector<MediaItem *> itemsToProcess;
+    for (int i = 0; i < CountSelectedMediaItems(0); ++i) {
+        itemsToProcess.push_back(GetSelectedMediaItem(0, i));
+    }
+
+    if (itemsToProcess.empty()) {
+        return;
+    }
+
+    mJobManager->StartBatch(itemsToProcess, mCurrentActiveAlgorithmPtr, mode);
 
     if (mProgressBar) {
         mProgressBar->SetProgress(0.0);
@@ -391,13 +392,10 @@ void ReacomaExtension::Process(Mode mode, bool force) {
             }
         }
     }
-
-    mBatchUndoProject = GetItemProjectContext(mPendingItemsQueue.front());
-    Undo_BeginBlock2(mBatchUndoProject);
 }
 
 void ReacomaExtension::OnParamChangeUI(int paramIdx, EParamSource source) {
-    if (mAutoProcessMode && !mIsProcessingBatch &&
+    if (mAutoProcessMode && !mJobManager->IsProcessing() &&
         mHasUserInteractedSinceLoad) {
         mProcessIsPending = true;
         mLastParamChangeTime = std::chrono::steady_clock::now();
@@ -437,19 +435,16 @@ void ReacomaExtension::OnIdle() {
         }
     }
 
-    if (mProcessIsPending && !mIsProcessingBatch) {
+    if (mProcessIsPending && !mJobManager->IsProcessing()) {
         const auto currentTime = std::chrono::steady_clock::now();
         if (currentTime - mLastParamChangeTime > AUTO_PROCESS_DELAY) {
             mProcessIsPending = false;
 
-            Mode modeToRun = mCurrentActiveAlgorithmPtr &&
-                                     mCurrentActiveAlgorithmPtr->CreatesTakes()
-                                 ? Mode::ProcessAudio
-                                 : Mode::Segment;
-
-            if (mIsProcessingBatch) {
-                CancelRunningJobs();
-            }
+            ProcessingMode modeToRun =
+                mCurrentActiveAlgorithmPtr &&
+                        mCurrentActiveAlgorithmPtr->CreatesTakes()
+                    ? ProcessingMode::ProcessAudio
+                    : ProcessingMode::Segment;
 
             Process(modeToRun, true);
         }
@@ -459,88 +454,14 @@ void ReacomaExtension::OnIdle() {
 }
 
 void ReacomaExtension::ManageProcessingJobs() {
-    if (!mIsProcessingBatch) {
-        return;
-    }
+    mJobManager->Tick();
 
-    if (mIsCancellationRequested) {
-        for (auto &job : mActiveJobs) {
-            job->Cancel();
-            SetMediaItemInfo_Value(job->mItem, "C_LOCK", false);
+    if (mJobManager->IsProcessing()) {
+        if (mProgressBar) {
+            mProgressBar->SetProgress(mJobManager->GetOverallProgress());
         }
-
-        mPendingItemsQueue.clear();
-        mActiveJobs.clear();
-        mFinalizationQueue.clear();
-
-        mIsProcessingBatch = false;
-        mIsCancellationRequested = false;
-
-        Undo_EndBlock2(mBatchUndoProject, "Reacoma: Batch Process Cancelled",
-                       -1);
-        mBatchUndoProject = nullptr;
-
+    } else {
         ResetUIState();
-        UpdateArrange();
-        UpdateTimeline();
-        return;
-    }
-
-    for (auto it = mActiveJobs.begin(); it != mActiveJobs.end();) {
-        if ((*it)->IsFinished()) {
-            mFinalizationQueue.push_back(std::move(*it));
-            it = mActiveJobs.erase(it);
-        } else {
-            ++it;
-        }
-    }
-
-    while (mActiveJobs.size() < mConcurrencyLimit &&
-           !mPendingItemsQueue.empty()) {
-        MediaItem *itemToProcess = mPendingItemsQueue.front();
-        mPendingItemsQueue.pop_front();
-
-        auto job =
-            ProcessingJob::Create(mCurrentActiveAlgorithmPtr, itemToProcess);
-        if (job) {
-            job->Start();
-            mActiveJobs.push_back(std::move(job));
-        }
-    }
-
-    if (!mFinalizationQueue.empty()) {
-        auto &finishedJob = mFinalizationQueue.front();
-        finishedJob->Finalize();
-        mFinalizationQueue.pop_front();
-    }
-
-    if (mProgressBar && mTotalBatchItems > 0) {
-        double totalProgressUnits = 0.0;
-
-        for (const auto &job : mActiveJobs) {
-            totalProgressUnits += job->GetProgress();
-        }
-
-        size_t completedJobs =
-            mTotalBatchItems - mPendingItemsQueue.size() - mActiveJobs.size();
-        totalProgressUnits += static_cast<double>(completedJobs);
-
-        double overallProgress = totalProgressUnits / mTotalBatchItems;
-        if (overallProgress > mLastReportedProgress) {
-            mLastReportedProgress = overallProgress;
-        }
-        mProgressBar->SetProgress(mLastReportedProgress);
-    }
-
-    if (mPendingItemsQueue.empty() && mActiveJobs.empty() &&
-        mFinalizationQueue.empty()) {
-        mIsProcessingBatch = false;
-        Undo_EndBlock2(mBatchUndoProject, "Reacoma: Process Batch", -1);
-        mBatchUndoProject = nullptr;
-
-        ResetUIState();
-        UpdateArrange();
-        UpdateTimeline();
     }
 }
 
@@ -560,11 +481,9 @@ void ReacomaExtension::SetAlgorithmChoice(EAlgorithmChoice choice,
 }
 
 void ReacomaExtension::CancelRunningJobs() {
-    if (mIsProcessingBatch) {
-        mIsCancellationRequested = true;
-        if (mCancelButton) {
-            mCancelButton->SetDisabled(true);
-        }
+    mJobManager->Cancel();
+    if (mCancelButton) {
+        mCancelButton->SetDisabled(true);
     }
 }
 

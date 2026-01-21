@@ -20,8 +20,8 @@ private:
             return false;
 
         // The mode-switching logic now lives here, in one place.
-        auto mode = this->mApiProvider->GetCurrentMode();
-        if (mode == ReacomaExtension::Mode::Regions) {
+        auto mode = this->GetProcessingMode();
+        if (mode == ProcessingMode::Regions) {
             CreateRegionsFromSlices(item, slices, sampleRate);
         } else {
             CreateTakeMarkers(item, take, slices, sampleRate);
