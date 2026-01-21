@@ -25,6 +25,8 @@ public:
     void RegisterParameters() override;
     int GetNumAlgorithmParams() const override;
 
+    std::unique_ptr<IAlgorithm> CreateNew() const override;
+
 protected:
     BufferT::type &GetSlicesBuffer() override;
     bool DoProcess(InputBufferT::type &sourceBuffer, int numChannels,

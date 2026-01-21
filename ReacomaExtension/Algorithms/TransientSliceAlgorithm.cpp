@@ -110,3 +110,7 @@ const char *TransientSliceAlgorithm::GetName() const {
 int TransientSliceAlgorithm::GetNumAlgorithmParams() const {
     return kNumParams;
 }
+
+std::unique_ptr<IAlgorithm> TransientSliceAlgorithm::CreateNew() const {
+    return std::make_unique<TransientSliceAlgorithm>(mApiProvider);
+}

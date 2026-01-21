@@ -90,3 +90,7 @@ const char *TransientAlgorithm::GetName() const {
 }
 
 int TransientAlgorithm::GetNumAlgorithmParams() const { return kNumParams; }
+
+std::unique_ptr<IAlgorithm> TransientAlgorithm::CreateNew() const {
+    return std::make_unique<TransientAlgorithm>(mApiProvider);
+}

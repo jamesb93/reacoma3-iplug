@@ -478,7 +478,7 @@ void ReacomaExtension::OnIdle() {
         mPendingItemsQueue.pop_front();
 
         auto job =
-            ProcessingJob::Create(mCurrentAlgorithmChoice, itemToProcess, this);
+            ProcessingJob::Create(mCurrentActiveAlgorithmPtr, itemToProcess);
         if (job) {
             job->Start();
             mActiveJobs.push_back(std::move(job));

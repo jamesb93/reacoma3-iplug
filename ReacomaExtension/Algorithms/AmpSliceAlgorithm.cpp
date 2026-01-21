@@ -89,6 +89,10 @@ const char *AmpSliceAlgorithm::GetName() const { return "Amp Slice"; }
 
 int AmpSliceAlgorithm::GetNumAlgorithmParams() const { return kNumParams; }
 
+std::unique_ptr<IAlgorithm> AmpSliceAlgorithm::CreateNew() const {
+    return std::make_unique<AmpSliceAlgorithm>(mApiProvider);
+}
+
 BufferT::type &AmpSliceAlgorithm::GetSlicesBuffer() {
     return mParams.template get<5>();
 }

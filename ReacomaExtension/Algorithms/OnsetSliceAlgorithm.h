@@ -4,7 +4,7 @@
 
 class OnsetSliceAlgorithm
     : public FlucomaAlgorithm<fluid::client::NRTThreadingOnsetSliceClient> {
-  public:
+public:
     enum Params {
         kMetric = 0,
         kThreshold,
@@ -24,7 +24,9 @@ class OnsetSliceAlgorithm
     void RegisterParameters() override;
     int GetNumAlgorithmParams() const override;
 
-  protected:
+    std::unique_ptr<IAlgorithm> CreateNew() const override;
+
+protected:
     bool DoProcess(InputBufferT::type &sourceBuffer, int numChannels,
                    int frameCount, int sampleRate) override;
     bool HandleResults(MediaItem *item, MediaItem_Take *take, int numChannels,

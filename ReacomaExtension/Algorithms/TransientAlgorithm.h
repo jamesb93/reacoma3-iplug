@@ -4,7 +4,7 @@
 
 class TransientAlgorithm
     : public AudioOutputAlgorithm<fluid::client::NRTThreadedTransientsClient> {
-  public:
+public:
     enum Params {
         kOrder = 0,
         kBlockSize,
@@ -24,7 +24,9 @@ class TransientAlgorithm
     void RegisterParameters() override;
     int GetNumAlgorithmParams() const override;
 
-  protected:
+    std::unique_ptr<IAlgorithm> CreateNew() const override;
+
+protected:
     bool DoProcess(InputBufferT::type &sourceBuffer, int numChannels,
                    int frameCount, int sampleRate) override;
     bool HandleResults(MediaItem *item, MediaItem_Take *take, int numChannels,

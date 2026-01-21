@@ -99,11 +99,11 @@ bool NoveltySliceAlgorithm::DoProcess(InputBufferT::type &sourceBuffer,
     mParams.template set<4>(std::move(LongT::type(-1)), nullptr);
     mParams.template set<5>(std::move(slicesOutputBuffer), nullptr);
     mParams.template set<6>(std::move(LongT::type(algorithm)), nullptr);
-    mParams.template set<7>(std::move(LongRuntimeMaxParam(kernelsize, kernelsize)),
-                             nullptr);
+    mParams.template set<7>(
+        std::move(LongRuntimeMaxParam(kernelsize, kernelsize)), nullptr);
     mParams.template set<8>(std::move(FloatT::type(threshold)), nullptr);
-    mParams.template set<9>(std::move(LongRuntimeMaxParam(filtersize, filtersize)),
-                             nullptr);
+    mParams.template set<9>(
+        std::move(LongRuntimeMaxParam(filtersize, filtersize)), nullptr);
     mParams.template set<10>(std::move(LongT::type(minslicelength)), nullptr);
     mParams.template set<11>(
         std::move(fluid::client::FFTParams(windowSize, hopSize, fftSize,
@@ -121,6 +121,10 @@ bool NoveltySliceAlgorithm::DoProcess(InputBufferT::type &sourceBuffer,
 const char *NoveltySliceAlgorithm::GetName() const { return "Novelty Slice"; }
 
 int NoveltySliceAlgorithm::GetNumAlgorithmParams() const { return kNumParams; }
+
+std::unique_ptr<IAlgorithm> NoveltySliceAlgorithm::CreateNew() const {
+    return std::make_unique<NoveltySliceAlgorithm>(mApiProvider);
+}
 
 BufferT::type &NoveltySliceAlgorithm::GetSlicesBuffer() {
     return mParams.template get<5>();

@@ -61,21 +61,25 @@ bool HPSSAlgorithm::DoProcess(InputBufferT::type &sourceBuffer, int numChannels,
     if (static_cast<int>(percFilterSizeParam) % 2 == 0)
         percFilterSizeParam += 1;
 
-    mParams.template set<0>(std::move(sourceBuffer), nullptr);   // source
-    mParams.template set<1>(std::move(LongT::type(0)), nullptr);       // startChan
-    mParams.template set<2>(std::move(LongT::type(-1)), nullptr);       // numChans
-    mParams.template set<3>(std::move(LongT::type(0)), nullptr);       // startFrame
-    mParams.template set<4>(std::move(LongT::type(-1)), nullptr);       // numFrames
+    mParams.template set<0>(std::move(sourceBuffer), nullptr);     // source
+    mParams.template set<1>(std::move(LongT::type(0)), nullptr);   // startChan
+    mParams.template set<2>(std::move(LongT::type(-1)), nullptr);  // numChans
+    mParams.template set<3>(std::move(LongT::type(0)), nullptr);   // startFrame
+    mParams.template set<4>(std::move(LongT::type(-1)), nullptr);  // numFrames
     mParams.template set<5>(std::move(harmOutputBuffer), nullptr); // harmonic
     mParams.template set<6>(std::move(percOutputBuffer), nullptr); // percussive
     mParams.template set<7>(nullptr, nullptr);
-    mParams.template set<8>(
-        std::move(LongRuntimeMaxParam(harmFilterSizeParam, harmFilterSizeParam)), nullptr);
-    mParams.template set<9>(
-        std::move(LongRuntimeMaxParam(percFilterSizeParam, percFilterSizeParam)), nullptr);
+    mParams.template set<8>(std::move(LongRuntimeMaxParam(harmFilterSizeParam,
+                                                          harmFilterSizeParam)),
+                            nullptr);
+    mParams.template set<9>(std::move(LongRuntimeMaxParam(percFilterSizeParam,
+                                                          percFilterSizeParam)),
+                            nullptr);
     mParams.template set<10>(std::move(LongT::type(0)), nullptr);
-    mParams.template set<11>(std::move(FloatPairsArrayT::type(0, 1, 1, 1)), nullptr);
-    mParams.template set<12>(std::move(FloatPairsArrayT::type(1, 0, 1, 1)), nullptr);
+    mParams.template set<11>(std::move(FloatPairsArrayT::type(0, 1, 1, 1)),
+                             nullptr);
+    mParams.template set<12>(std::move(FloatPairsArrayT::type(1, 0, 1, 1)),
+                             nullptr);
     mParams.template set<13>(
         std::move(fluid::client::FFTParams(windowSize, hopSize, fftSize,
                                            std::max(windowSize, fftSize))),
@@ -108,3 +112,7 @@ const char *HPSSAlgorithm::GetName() const {
 }
 
 int HPSSAlgorithm::GetNumAlgorithmParams() const { return kNumParams; }
+
+std::unique_ptr<IAlgorithm> HPSSAlgorithm::CreateNew() const {
+    return std::make_unique<HPSSAlgorithm>(mApiProvider);
+}

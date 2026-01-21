@@ -1,24 +1,15 @@
 #pragma once
 
 #include <memory>
-#include "ReacomaExtension.h"
 #include "IAlgorithm.h"
-#include "NoveltySliceAlgorithm.h"
-#include "HPSSAlgorithm.h"
-#include "NMFAlgorithm.h"
-#include "OnsetSliceAlgorithm.h"
-#include "TransientSliceAlgorithm.h"
-#include "TransientAlgorithm.h"
-#include "AmpGateAlgorithm.h"
 
 class MediaItem;
 class ReacomaExtension;
 
 class ProcessingJob {
 public:
-    static std::unique_ptr<ProcessingJob>
-    Create(ReacomaExtension::EAlgorithmChoice algoChoice, MediaItem *item,
-           ReacomaExtension *provider);
+    static std::unique_ptr<ProcessingJob> Create(IAlgorithm *prototype,
+                                                 MediaItem *item);
 
     void Start();
     bool IsFinished();

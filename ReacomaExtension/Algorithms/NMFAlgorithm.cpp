@@ -86,3 +86,7 @@ const char *NMFAlgorithm::GetName() const {
 }
 
 int NMFAlgorithm::GetNumAlgorithmParams() const { return kNumParams; }
+
+std::unique_ptr<IAlgorithm> NMFAlgorithm::CreateNew() const {
+    return std::make_unique<NMFAlgorithm>(mApiProvider);
+}

@@ -6,7 +6,7 @@ class MediaItem;
 class ReacomaExtension;
 
 class IAlgorithm {
-  public:
+public:
     IAlgorithm(ReacomaExtension *apiProvider);
     virtual ~IAlgorithm();
 
@@ -30,7 +30,9 @@ class IAlgorithm {
     virtual bool SupportsRegions() = 0;
     virtual bool CreatesTakes() = 0;
 
-  protected:
+    virtual std::unique_ptr<IAlgorithm> CreateNew() const = 0;
+
+protected:
     ReacomaExtension *mApiProvider;
     int mBaseParamIdx = 0;
 };

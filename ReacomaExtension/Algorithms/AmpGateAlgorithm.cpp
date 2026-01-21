@@ -78,11 +78,15 @@ bool AmpGateAlgorithm::DoProcess(InputBufferT::type &sourceBuffer,
     mParams.template set<8>(std::move(FloatT::type(onThreshold)), nullptr);
     mParams.template set<9>(std::move(FloatT::type(offThreshold)), nullptr);
     mParams.template set<10>(std::move(LongT::type(minEventDuration)), nullptr);
-    mParams.template set<11>(std::move(LongT::type(minSilenceDuration)), nullptr);
-    mParams.template set<12>(std::move(LongT::type(minTimeAboveThreshold)), nullptr);
-    mParams.template set<13>(std::move(LongT::type(minTimeBelowThreshold)), nullptr);
+    mParams.template set<11>(std::move(LongT::type(minSilenceDuration)),
+                             nullptr);
+    mParams.template set<12>(std::move(LongT::type(minTimeAboveThreshold)),
+                             nullptr);
+    mParams.template set<13>(std::move(LongT::type(minTimeBelowThreshold)),
+                             nullptr);
     mParams.template set<14>(std::move(LongT::type(upwardLookupTime)), nullptr);
-    mParams.template set<15>(std::move(LongT::type(downwardLookupTime)), nullptr);
+    mParams.template set<15>(std::move(LongT::type(downwardLookupTime)),
+                             nullptr);
     mParams.template set<16>(std::move(LongT::type(hiPassFreq)), nullptr);
 
     mClient = NRTThreadedAmpGateClient(mParams, mContext);
@@ -140,3 +144,7 @@ bool AmpGateAlgorithm::HandleResults(MediaItem *item, MediaItem_Take *take,
 const char *AmpGateAlgorithm::GetName() const { return "Onset Slice"; }
 
 int AmpGateAlgorithm::GetNumAlgorithmParams() const { return kNumParams; }
+
+std::unique_ptr<IAlgorithm> AmpGateAlgorithm::CreateNew() const {
+    return std::make_unique<AmpGateAlgorithm>(mApiProvider);
+}
