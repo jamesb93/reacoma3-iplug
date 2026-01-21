@@ -105,7 +105,30 @@ ReacomaExtension::ReacomaExtension(reaper_plugin_info_t *pRec)
     mAlgorithms.push_back(std::make_unique<TransientAlgorithm>(this));
 
     for (const auto &algo : mAlgorithms) {
-        algo->RegisterParameters();
+        algo->SetBaseParamIdx(NParams());
+        auto descriptors = algo->GetParamDescriptors();
+        algo->InitParamValues(descriptors.size());
+        for (const auto &d : descriptors) {
+            IParam *p = AddParam();
+            switch (d.type) {
+                case ParameterDescriptor::Double:
+                    p->InitDouble(d.name.c_str(), d.defaultVal, d.minVal,
+                                  d.maxVal, d.step);
+                    break;
+                case ParameterDescriptor::Int:
+                    p->InitInt(d.name.c_str(), static_cast<int>(d.defaultVal),
+                               static_cast<int>(d.minVal),
+                               static_cast<int>(d.maxVal));
+                    break;
+                case ParameterDescriptor::Enum:
+                    p->InitEnum(d.name.c_str(), static_cast<int>(d.defaultVal),
+                                static_cast<int>(d.enumLabels.size()));
+                    for (int i = 0; i < d.enumLabels.size(); ++i) {
+                        p->SetDisplayText(i, d.enumLabels[i].c_str());
+                    }
+                    break;
+            }
+        }
     }
 
     SetAlgorithmChoice(kNoveltySlice, false);

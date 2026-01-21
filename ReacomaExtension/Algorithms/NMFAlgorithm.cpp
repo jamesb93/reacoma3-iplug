@@ -7,60 +7,72 @@ NMFAlgorithm::NMFAlgorithm(ReacomaExtension *apiProvider)
 
 NMFAlgorithm::~NMFAlgorithm() = default;
 
-void NMFAlgorithm::RegisterParameters() {
-    mBaseParamIdx = mApiProvider->NParams();
-    for (int i = 0; i < kNumParams; ++i) {
-        mApiProvider->AddParam();
-    }
-    mApiProvider->GetParam(mBaseParamIdx + kComponents)
-        ->InitInt("Number of Components", 2, 2, 10);
-    mApiProvider->GetParam(mBaseParamIdx + kIterations)
-        ->InitInt("Number of Iterations", 100, 1, 1000);
-
-    mApiProvider->GetParam(mBaseParamIdx + NMFAlgorithm::kWindowSize)
-        ->InitInt("Window Size", 1024, 2, 65536);
-
-    mApiProvider->GetParam(mBaseParamIdx + NMFAlgorithm::kHopSize)
-        ->InitInt("Hop Size", 512, 2, 65536);
-
-    mApiProvider->GetParam(mBaseParamIdx + NMFAlgorithm::kFFTSize)
-        ->InitInt("FFT Size", 1024, 2, 65536);
+std::vector<ParameterDescriptor> NMFAlgorithm::GetParamDescriptors() const {
+    std::vector<ParameterDescriptor> descriptors;
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Number of Components", 2.0, 2.0, 10.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Number of Iterations", 100.0, 1.0, 1000.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Window Size", 1024.0, 2.0, 65536.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Hop Size", 512.0, 2.0, 65536.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "FFT Size", 1024.0, 2.0, 65536.0});
+    return descriptors;
 }
 
 bool NMFAlgorithm::DoProcess(InputBufferT::type &sourceBuffer, int numChannels,
                              int frameCount, int sampleRate) {
-    auto componentsParam =
-        mApiProvider->GetParam(mBaseParamIdx + kComponents)->Value();
-    auto iterationsParam =
-        mApiProvider->GetParam(mBaseParamIdx + kIterations)->Value();
-
-    auto windowSize =
-        mApiProvider->GetParam(mBaseParamIdx + NMFAlgorithm::kWindowSize)
-            ->Value();
-    auto hopSize =
-        mApiProvider->GetParam(mBaseParamIdx + NMFAlgorithm::kHopSize)->Value();
-    auto fftSize =
-        mApiProvider->GetParam(mBaseParamIdx + NMFAlgorithm::kFFTSize)->Value();
+    auto componentsParam = GetParamValue(kComponents);
+    auto iterationsParam = GetParamValue(kIterations);
+    auto windowSize = GetParamValue(kWindowSize);
+    auto hopSize = GetParamValue(kHopSize);
+    auto fftSize = GetParamValue(kFFTSize);
 
     auto resynthMemoryBuffer = std::make_shared<MemoryBufferAdaptor>(
-        numChannels * componentsParam, frameCount, sampleRate);
+        numChannels * static_cast<int>(componentsParam), frameCount,
+        sampleRate);
     auto resynthOutputBuffer =
         fluid::client::BufferT::type(resynthMemoryBuffer);
 
-    mParams.template set<0>(std::move(sourceBuffer), nullptr);
-    mParams.template set<1>(std::move(LongT::type(0)), nullptr);
-    mParams.template set<2>(std::move(LongT::type(-1)), nullptr);
-    mParams.template set<3>(std::move(LongT::type(0)), nullptr);
-    mParams.template set<4>(std::move(LongT::type(-1)), nullptr);
-    mParams.template set<5>(std::move(resynthOutputBuffer), nullptr);
-    mParams.template set<6>(std::move(LongT::type(1)), nullptr);
-    mParams.template set<7>(nullptr, nullptr);
-    mParams.template set<8>(std::move(LongT::type(0)), nullptr);
-    mParams.template set<9>(nullptr, nullptr);
-    mParams.template set<10>(std::move(LongT::type(0)), nullptr);
-    mParams.template set<11>(std::move(componentsParam), nullptr);
-    mParams.template set<12>(std::move(iterationsParam), nullptr);
-    mParams.template set<13>(
+    // FluCoMa Client Parameter Indices
+    constexpr int kFlucomaInputAudio = 0;
+    constexpr int kFlucomaStartChan = 1;
+    constexpr int kFlucomaNumChans = 2;
+    constexpr int kFlucomaStartFrame = 3;
+    constexpr int kFlucomaNumFrames = 4;
+    constexpr int kFlucomaResynth = 5;
+    constexpr int kFlucomaResynthMode = 6;
+    constexpr int kFlucomaBases = 7;
+    constexpr int kFlucomaBasesMode = 8;
+    constexpr int kFlucomaActivations = 9;
+    constexpr int kFlucomaActivationsMode = 10;
+    constexpr int kFlucomaComponents = 11;
+    constexpr int kFlucomaIterations = 12;
+    constexpr int kFlucomaFFTParams = 13;
+
+    mParams.template set<kFlucomaInputAudio>(std::move(sourceBuffer), nullptr);
+    mParams.template set<kFlucomaStartChan>(std::move(LongT::type(0)), nullptr);
+    mParams.template set<kFlucomaNumChans>(std::move(LongT::type(-1)), nullptr);
+    mParams.template set<kFlucomaStartFrame>(std::move(LongT::type(0)),
+                                             nullptr);
+    mParams.template set<kFlucomaNumFrames>(std::move(LongT::type(-1)),
+                                            nullptr);
+    mParams.template set<kFlucomaResynth>(std::move(resynthOutputBuffer),
+                                          nullptr);
+    mParams.template set<kFlucomaResynthMode>(std::move(LongT::type(1)),
+                                              nullptr);
+    mParams.template set<kFlucomaBases>(nullptr, nullptr);
+    mParams.template set<kFlucomaBasesMode>(std::move(LongT::type(0)), nullptr);
+    mParams.template set<kFlucomaActivations>(nullptr, nullptr);
+    mParams.template set<kFlucomaActivationsMode>(std::move(LongT::type(0)),
+                                                  nullptr);
+    mParams.template set<kFlucomaComponents>(
+        std::move(LongT::type(componentsParam)), nullptr);
+    mParams.template set<kFlucomaIterations>(
+        std::move(LongT::type(iterationsParam)), nullptr);
+    mParams.template set<kFlucomaFFTParams>(
         std::move(fluid::client::FFTParams(windowSize, hopSize, fftSize,
                                            std::max(windowSize, fftSize))),
         nullptr);

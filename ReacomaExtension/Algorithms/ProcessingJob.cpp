@@ -30,9 +30,14 @@ void ProcessingJob::Cancel() {
 std::unique_ptr<ProcessingJob> ProcessingJob::Create(IAlgorithm *prototype,
                                                      MediaItem *item) {
     if (prototype) {
+        prototype->SyncParameters();
         std::unique_ptr<IAlgorithm> algorithm = prototype->CreateNew();
         if (algorithm) {
             algorithm->SetBaseParamIdx(prototype->GetBaseParamIdx());
+            algorithm->InitParamValues(prototype->GetNumAlgorithmParams());
+            for (int i = 0; i < prototype->GetNumAlgorithmParams(); ++i) {
+                algorithm->SetParamValue(i, prototype->GetParamValue(i));
+            }
             return std::make_unique<ProcessingJob>(std::move(algorithm), item);
         }
     }

@@ -7,26 +7,33 @@ OnsetSliceAlgorithm::OnsetSliceAlgorithm(ReacomaExtension *apiProvider)
 
 OnsetSliceAlgorithm::~OnsetSliceAlgorithm() = default;
 
-void OnsetSliceAlgorithm::RegisterParameters() {
-    mBaseParamIdx = mApiProvider->NParams();
-    for (int i = 0; i < kNumParams; ++i) {
-        mApiProvider->AddParam();
-    }
-    mApiProvider->GetParam(mBaseParamIdx + kMetric)->InitInt("Metric", 0, 0, 9);
-    mApiProvider->GetParam(mBaseParamIdx + kThreshold)
-        ->InitDouble("Threshold", 0.5, 0.0, 1.0, 0.01);
-    mApiProvider->GetParam(mBaseParamIdx + kFrameDelta)
-        ->InitInt("Frame Delta", 0, 0, 10);
-    mApiProvider->GetParam(mBaseParamIdx + kFilterSize)
-        ->InitInt("Filter Size", 5, 1, 101);
-    mApiProvider->GetParam(mBaseParamIdx + kMinSliceLength)
-        ->InitInt("Min Length", 2, 1, 1000);
-    mApiProvider->GetParam(mBaseParamIdx + kWindowSize)
-        ->InitInt("Window Size", 1024, 2, 65536);
-    mApiProvider->GetParam(mBaseParamIdx + kHopSize)
-        ->InitInt("Hop Size", 512, 2, 65536);
-    mApiProvider->GetParam(mBaseParamIdx + kFFTSize)
-        ->InitInt("FFT Size", 1024, 2, 65536);
+std::vector<ParameterDescriptor>
+OnsetSliceAlgorithm::GetParamDescriptors() const {
+    std::vector<ParameterDescriptor> descriptors;
+    descriptors.push_back(
+        {ParameterDescriptor::Enum,
+         "Metric",
+         0.0,
+         0.0,
+         9.0,
+         0.0,
+         {"Energy", "HFC", "SpectralDiff", "ComplexDomain", "PhaseDev",
+          "WPhaseDev", "SpectralFlux", "ModifiedKL", "ISDiff", "Cosine"}});
+    descriptors.push_back(
+        {ParameterDescriptor::Double, "Threshold", 0.5, 0.0, 1.0, 0.01});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Min Length", 2.0, 1.0, 1000.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Filter Size", 5.0, 1.0, 101.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Frame Delta", 0.0, 0.0, 10.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Window Size", 1024.0, 2.0, 65536.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Hop Size", 512.0, 2.0, 65536.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "FFT Size", 1024.0, 2.0, 65536.0});
+    return descriptors;
 }
 
 bool OnsetSliceAlgorithm::DoProcess(InputBufferT::type &sourceBuffer,
@@ -37,36 +44,52 @@ bool OnsetSliceAlgorithm::DoProcess(InputBufferT::type &sourceBuffer,
         std::make_shared<MemoryBufferAdaptor>(1, estimatedSlices, sampleRate);
     auto slicesOutputBuffer = fluid::client::BufferT::type(outBuffer);
 
-    auto metric = mApiProvider->GetParam(mBaseParamIdx + kMetric)->Value();
-    auto threshold =
-        mApiProvider->GetParam(mBaseParamIdx + kThreshold)->Value();
-    auto filterSize =
-        mApiProvider->GetParam(mBaseParamIdx + kFilterSize)->Value();
-    auto frameDelta =
-        mApiProvider->GetParam(mBaseParamIdx + kFrameDelta)->Value();
-    auto minLength =
-        mApiProvider->GetParam(mBaseParamIdx + kMinSliceLength)->Value();
-    auto windowSize =
-        mApiProvider->GetParam(mBaseParamIdx + kWindowSize)->Value();
-    auto hopSize = mApiProvider->GetParam(mBaseParamIdx + kHopSize)->Value();
-    auto fftSize = mApiProvider->GetParam(mBaseParamIdx + kFFTSize)->Value();
+    auto metric = GetParamValue(kMetric);
+    auto threshold = GetParamValue(kThreshold);
+    auto filterSize = GetParamValue(kFilterSize);
+    auto frameDelta = GetParamValue(kFrameDelta);
+    auto minLength = GetParamValue(kMinSliceLength);
+    auto windowSize = GetParamValue(kWindowSize);
+    auto hopSize = GetParamValue(kHopSize);
+    auto fftSize = GetParamValue(kFFTSize);
 
     if (static_cast<int>(filterSize) % 2 == 0)
         filterSize += 1;
 
-    mParams.template set<0>(std::move(sourceBuffer), nullptr);
-    mParams.template set<1>(std::move(LongT::type(0)), nullptr);
-    mParams.template set<2>(std::move(LongT::type(-1)), nullptr);
-    mParams.template set<3>(std::move(LongT::type(0)), nullptr);
-    mParams.template set<4>(std::move(LongT::type(-1)), nullptr);
-    mParams.template set<5>(std::move(slicesOutputBuffer), nullptr);
-    mParams.template set<6>(std::move(LongT::type(metric)), nullptr);
-    mParams.template set<7>(std::move(FloatT::type(threshold)), nullptr);
-    mParams.template set<8>(std::move(LongT::type(minLength)), nullptr);
-    mParams.template set<9>(
+    // FluCoMa Client Parameter Indices
+    constexpr int kFlucomaInputAudio = 0;
+    constexpr int kFlucomaStartChan = 1;
+    constexpr int kFlucomaNumChans = 2;
+    constexpr int kFlucomaStartFrame = 3;
+    constexpr int kFlucomaNumFrames = 4;
+    constexpr int kFlucomaOnsets = 5;
+    constexpr int kFlucomaMetric = 6;
+    constexpr int kFlucomaThreshold = 7;
+    constexpr int kFlucomaMinSliceLength = 8;
+    constexpr int kFlucomaFilterSize = 9;
+    constexpr int kFlucomaFrameDelta = 10;
+    constexpr int kFlucomaFFTParams = 11;
+
+    mParams.template set<kFlucomaInputAudio>(std::move(sourceBuffer), nullptr);
+    mParams.template set<kFlucomaStartChan>(std::move(LongT::type(0)), nullptr);
+    mParams.template set<kFlucomaNumChans>(std::move(LongT::type(-1)), nullptr);
+    mParams.template set<kFlucomaStartFrame>(std::move(LongT::type(0)),
+                                             nullptr);
+    mParams.template set<kFlucomaNumFrames>(std::move(LongT::type(-1)),
+                                            nullptr);
+    mParams.template set<kFlucomaOnsets>(std::move(slicesOutputBuffer),
+                                         nullptr);
+    mParams.template set<kFlucomaMetric>(std::move(LongT::type(metric)),
+                                         nullptr);
+    mParams.template set<kFlucomaThreshold>(std::move(FloatT::type(threshold)),
+                                            nullptr);
+    mParams.template set<kFlucomaMinSliceLength>(
+        std::move(LongT::type(minLength)), nullptr);
+    mParams.template set<kFlucomaFilterSize>(
         std::move(LongRuntimeMaxParam(filterSize, filterSize)), nullptr);
-    mParams.template set<10>(std::move(LongT::type(frameDelta)), nullptr);
-    mParams.template set<11>(
+    mParams.template set<kFlucomaFrameDelta>(std::move(LongT::type(frameDelta)),
+                                             nullptr);
+    mParams.template set<kFlucomaFFTParams>(
         std::move(fluid::client::FFTParams(windowSize, hopSize, fftSize,
                                            std::max(windowSize, fftSize))),
         nullptr);

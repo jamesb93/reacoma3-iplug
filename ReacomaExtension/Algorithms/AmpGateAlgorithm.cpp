@@ -7,33 +7,31 @@ AmpGateAlgorithm::AmpGateAlgorithm(ReacomaExtension *apiProvider)
 
 AmpGateAlgorithm::~AmpGateAlgorithm() = default;
 
-void AmpGateAlgorithm::RegisterParameters() {
-    mBaseParamIdx = mApiProvider->NParams();
-    for (int i = 0; i < kNumParams; ++i) {
-        mApiProvider->AddParam();
-    }
-    mApiProvider->GetParam(mBaseParamIdx + kRampUpTime)
-        ->InitInt("Ramp Up Length (samples)", 10, 1, 88200);
-    mApiProvider->GetParam(mBaseParamIdx + kRampDownTime)
-        ->InitInt("Ramp Down Length (samples)", 10, 1, 88200);
-    mApiProvider->GetParam(mBaseParamIdx + kOnThreshold)
-        ->InitDouble("On Threshold (dB)", -12, -144, 144, 0.1);
-    mApiProvider->GetParam(mBaseParamIdx + kOffThreshold)
-        ->InitDouble("Off Threshold (dB)", -24, -144, 144, 0.1);
-    mApiProvider->GetParam(mBaseParamIdx + kMinEventDuration)
-        ->InitInt("Minimum Slice Length", 1, 1, 88200);
-    mApiProvider->GetParam(mBaseParamIdx + kMinSilenceDuration)
-        ->InitInt("Minimum Silence Length", 1, 1, 88200);
-    mApiProvider->GetParam(mBaseParamIdx + kMinTimeAboveThreshold)
-        ->InitInt("Minimum Length Above", 1, 1, 88200);
-    mApiProvider->GetParam(mBaseParamIdx + kMinTimeBelowThreshold)
-        ->InitInt("Minimum Length Below", 1, 1, 88200);
-    mApiProvider->GetParam(mBaseParamIdx + kUpwardLookupTime)
-        ->InitInt("Lookback", 0, 0, 88200);
-    mApiProvider->GetParam(mBaseParamIdx + kDownwardLookupTime)
-        ->InitInt("Lookahead", 0, 0, 88200);
-    mApiProvider->GetParam(mBaseParamIdx + kHiPassFreq)
-        ->InitInt("High-Pass Filter Cutoff (Hz)", 85, 0, 5000);
+std::vector<ParameterDescriptor> AmpGateAlgorithm::GetParamDescriptors() const {
+    std::vector<ParameterDescriptor> descriptors;
+    descriptors.push_back({ParameterDescriptor::Int, "Ramp Up Length (samples)",
+                           10.0, 1.0, 88200.0});
+    descriptors.push_back({ParameterDescriptor::Int,
+                           "Ramp Down Length (samples)", 10.0, 1.0, 88200.0});
+    descriptors.push_back({ParameterDescriptor::Double, "On Threshold (dB)",
+                           -12.0, -144.0, 144.0, 0.1});
+    descriptors.push_back({ParameterDescriptor::Double, "Off Threshold (dB)",
+                           -24.0, -144.0, 144.0, 0.1});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Minimum Slice Length", 1.0, 1.0, 88200.0});
+    descriptors.push_back({ParameterDescriptor::Int, "Minimum Silence Length",
+                           1.0, 1.0, 88200.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Minimum Length Above", 1.0, 1.0, 88200.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Minimum Length Below", 1.0, 1.0, 88200.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Lookback", 0.0, 0.0, 88200.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Lookahead", 0.0, 0.0, 88200.0});
+    descriptors.push_back({ParameterDescriptor::Double,
+                           "High-Pass Filter Cutoff (Hz)", 85.0, 0.0, 5000.0});
+    return descriptors;
 }
 
 bool AmpGateAlgorithm::DoProcess(InputBufferT::type &sourceBuffer,
@@ -44,50 +42,68 @@ bool AmpGateAlgorithm::DoProcess(InputBufferT::type &sourceBuffer,
         std::make_shared<MemoryBufferAdaptor>(1, estimatedSlices, sampleRate);
     auto slicesOutputBuffer = fluid::client::BufferT::type(outBuffer);
 
-    auto rampUpTime =
-        mApiProvider->GetParam(mBaseParamIdx + kRampUpTime)->Value();
-    auto rampDownTime =
-        mApiProvider->GetParam(mBaseParamIdx + kRampDownTime)->Value();
-    auto onThreshold =
-        mApiProvider->GetParam(mBaseParamIdx + kOnThreshold)->Value();
-    auto offThreshold =
-        mApiProvider->GetParam(mBaseParamIdx + kOffThreshold)->Value();
-    auto minEventDuration =
-        mApiProvider->GetParam(mBaseParamIdx + kMinEventDuration)->Value();
-    auto minSilenceDuration =
-        mApiProvider->GetParam(mBaseParamIdx + kMinSilenceDuration)->Value();
-    auto minTimeAboveThreshold =
-        mApiProvider->GetParam(mBaseParamIdx + kMinTimeAboveThreshold)->Value();
-    auto minTimeBelowThreshold =
-        mApiProvider->GetParam(mBaseParamIdx + kMinTimeBelowThreshold)->Value();
-    auto upwardLookupTime =
-        mApiProvider->GetParam(mBaseParamIdx + kUpwardLookupTime)->Value();
-    auto downwardLookupTime =
-        mApiProvider->GetParam(mBaseParamIdx + kDownwardLookupTime)->Value();
-    auto hiPassFreq =
-        mApiProvider->GetParam(mBaseParamIdx + kHiPassFreq)->Value();
+    auto rampUpTime = GetParamValue(kRampUpTime);
+    auto rampDownTime = GetParamValue(kRampDownTime);
+    auto onThreshold = GetParamValue(kOnThreshold);
+    auto offThreshold = GetParamValue(kOffThreshold);
+    auto minEventDuration = GetParamValue(kMinEventDuration);
+    auto minSilenceDuration = GetParamValue(kMinSilenceDuration);
+    auto minTimeAboveThreshold = GetParamValue(kMinTimeAboveThreshold);
+    auto minTimeBelowThreshold = GetParamValue(kMinTimeBelowThreshold);
+    auto upwardLookupTime = GetParamValue(kUpwardLookupTime);
+    auto downwardLookupTime = GetParamValue(kDownwardLookupTime);
+    auto hiPassFreq = GetParamValue(kHiPassFreq);
 
-    mParams.template set<0>(std::move(sourceBuffer), nullptr);
-    mParams.template set<1>(std::move(LongT::type(0)), nullptr);
-    mParams.template set<2>(std::move(LongT::type(-1)), nullptr);
-    mParams.template set<3>(std::move(LongT::type(0)), nullptr);
-    mParams.template set<4>(std::move(LongT::type(-1)), nullptr);
-    mParams.template set<5>(std::move(slicesOutputBuffer), nullptr);
-    mParams.template set<6>(std::move(LongT::type(rampUpTime)), nullptr);
-    mParams.template set<7>(std::move(LongT::type(rampDownTime)), nullptr);
-    mParams.template set<8>(std::move(FloatT::type(onThreshold)), nullptr);
-    mParams.template set<9>(std::move(FloatT::type(offThreshold)), nullptr);
-    mParams.template set<10>(std::move(LongT::type(minEventDuration)), nullptr);
-    mParams.template set<11>(std::move(LongT::type(minSilenceDuration)),
-                             nullptr);
-    mParams.template set<12>(std::move(LongT::type(minTimeAboveThreshold)),
-                             nullptr);
-    mParams.template set<13>(std::move(LongT::type(minTimeBelowThreshold)),
-                             nullptr);
-    mParams.template set<14>(std::move(LongT::type(upwardLookupTime)), nullptr);
-    mParams.template set<15>(std::move(LongT::type(downwardLookupTime)),
-                             nullptr);
-    mParams.template set<16>(std::move(LongT::type(hiPassFreq)), nullptr);
+    // FluCoMa Client Parameter Indices
+    constexpr int kFlucomaInputAudio = 0;
+    constexpr int kFlucomaStartChan = 1;
+    constexpr int kFlucomaNumChans = 2;
+    constexpr int kFlucomaStartFrame = 3;
+    constexpr int kFlucomaNumFrames = 4;
+    constexpr int kFlucomaOnsets = 5;
+    constexpr int kFlucomaRampUp = 6;
+    constexpr int kFlucomaRampDown = 7;
+    constexpr int kFlucomaOnThreshold = 8;
+    constexpr int kFlucomaOffThreshold = 9;
+    constexpr int kFlucomaMinEventDuration = 10;
+    constexpr int kFlucomaMinSilenceDuration = 11;
+    constexpr int kFlucomaMinTimeAboveThreshold = 12;
+    constexpr int kFlucomaMinTimeBelowThreshold = 13;
+    constexpr int kFlucomaUpwardLookupTime = 14;
+    constexpr int kFlucomaDownwardLookupTime = 15;
+    constexpr int kFlucomaHiPassFreq = 16;
+
+    mParams.template set<kFlucomaInputAudio>(std::move(sourceBuffer), nullptr);
+    mParams.template set<kFlucomaStartChan>(std::move(LongT::type(0)), nullptr);
+    mParams.template set<kFlucomaNumChans>(std::move(LongT::type(-1)), nullptr);
+    mParams.template set<kFlucomaStartFrame>(std::move(LongT::type(0)),
+                                             nullptr);
+    mParams.template set<kFlucomaNumFrames>(std::move(LongT::type(-1)),
+                                            nullptr);
+    mParams.template set<kFlucomaOnsets>(std::move(slicesOutputBuffer),
+                                         nullptr);
+    mParams.template set<kFlucomaRampUp>(std::move(LongT::type(rampUpTime)),
+                                         nullptr);
+    mParams.template set<kFlucomaRampDown>(std::move(LongT::type(rampDownTime)),
+                                           nullptr);
+    mParams.template set<kFlucomaOnThreshold>(
+        std::move(FloatT::type(onThreshold)), nullptr);
+    mParams.template set<kFlucomaOffThreshold>(
+        std::move(FloatT::type(offThreshold)), nullptr);
+    mParams.template set<kFlucomaMinEventDuration>(
+        std::move(LongT::type(minEventDuration)), nullptr);
+    mParams.template set<kFlucomaMinSilenceDuration>(
+        std::move(LongT::type(minSilenceDuration)), nullptr);
+    mParams.template set<kFlucomaMinTimeAboveThreshold>(
+        std::move(LongT::type(minTimeAboveThreshold)), nullptr);
+    mParams.template set<kFlucomaMinTimeBelowThreshold>(
+        std::move(LongT::type(minTimeBelowThreshold)), nullptr);
+    mParams.template set<kFlucomaUpwardLookupTime>(
+        std::move(LongT::type(upwardLookupTime)), nullptr);
+    mParams.template set<kFlucomaDownwardLookupTime>(
+        std::move(LongT::type(downwardLookupTime)), nullptr);
+    mParams.template set<kFlucomaHiPassFreq>(
+        std::move(FloatT::type(hiPassFreq)), nullptr);
 
     mClient = NRTThreadedAmpGateClient(mParams, mContext);
     mClient.setSynchronous(false);

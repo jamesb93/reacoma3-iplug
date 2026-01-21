@@ -22,7 +22,7 @@ public:
     ~AmpSliceAlgorithm() override;
 
     const char *GetName() const override;
-    void RegisterParameters() override;
+    std::vector<ParameterDescriptor> GetParamDescriptors() const override;
     int GetNumAlgorithmParams() const override;
 
     std::unique_ptr<IAlgorithm> CreateNew() const override;

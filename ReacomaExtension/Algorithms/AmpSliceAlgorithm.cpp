@@ -9,30 +9,33 @@ AmpSliceAlgorithm::AmpSliceAlgorithm(ReacomaExtension *apiProvider)
 
 AmpSliceAlgorithm::~AmpSliceAlgorithm() = default;
 
-void AmpSliceAlgorithm::RegisterParameters() {
-    mBaseParamIdx = mApiProvider->NParams();
-
-    for (int i = 0; i < kNumParams; ++i) {
-        mApiProvider->AddParam();
-    }
-    mApiProvider->GetParam(mBaseParamIdx + kFastRampUpTime)
-        ->InitInt("Fast Ramp Up Length (samples)", 3, 1, 88200);
-    mApiProvider->GetParam(mBaseParamIdx + kFastRampDownTime)
-        ->InitInt("Fast Ramp Down Length (samples)", 383, 1, 88200);
-    mApiProvider->GetParam(mBaseParamIdx + kSlowRampUpTime)
-        ->InitDouble("Slow Ramp Down Length (samples)", 2205, 1, 88200, 1);
-    mApiProvider->GetParam(mBaseParamIdx + kSlowRampDownTime)
-        ->InitDouble("Fast Ramp Down Length (samples)", 2205, 1, 88200, 1);
-    mApiProvider->GetParam(mBaseParamIdx + kOnThreshold)
-        ->InitInt("On Threshold (dB)", 19, -144, 144);
-    mApiProvider->GetParam(mBaseParamIdx + kOffThreshold)
-        ->InitInt("Off Threshold", 8, -144, 144);
-    mApiProvider->GetParam(mBaseParamIdx + kSilenceThreshold)
-        ->InitInt("Floor value (dB)", -70, -144, 144);
-    mApiProvider->GetParam(mBaseParamIdx + kDebounce)
-        ->InitInt("Minimum Slice Length (samples)", 1323, 1, 88200);
-    mApiProvider->GetParam(mBaseParamIdx + kHiPassFreq)
-        ->InitInt("High-Pass Filter Cutoff", 2000, 0, 10000);
+std::vector<ParameterDescriptor>
+AmpSliceAlgorithm::GetParamDescriptors() const {
+    std::vector<ParameterDescriptor> descriptors;
+    descriptors.push_back({ParameterDescriptor::Int,
+                           "Fast Ramp Up Length (samples)", 3.0, 1.0, 88200.0});
+    descriptors.push_back({ParameterDescriptor::Int,
+                           "Fast Ramp Down Length (samples)", 383.0, 1.0,
+                           88200.0});
+    descriptors.push_back({ParameterDescriptor::Int,
+                           "Slow Ramp Up Length (samples)", 2205.0, 1.0,
+                           88200.0});
+    descriptors.push_back({ParameterDescriptor::Int,
+                           "Slow Ramp Down Length (samples)", 2205.0, 1.0,
+                           88200.0});
+    descriptors.push_back({ParameterDescriptor::Double, "On Threshold (dB)",
+                           19.0, -144.0, 144.0});
+    descriptors.push_back({ParameterDescriptor::Double, "Off Threshold (dB)",
+                           8.0, -144.0, 144.0});
+    descriptors.push_back({ParameterDescriptor::Double, "Floor value (dB)",
+                           -70.0, -144.0, 144.0});
+    descriptors.push_back({ParameterDescriptor::Int,
+                           "Minimum Slice Length (samples)", 1323.0, 1.0,
+                           88200.0});
+    descriptors.push_back({ParameterDescriptor::Double,
+                           "High-Pass Filter Cutoff (Hz)", 2000.0, 0.0,
+                           10000.0});
+    return descriptors;
 }
 
 bool AmpSliceAlgorithm::DoProcess(InputBufferT::type &sourceBuffer,
@@ -43,40 +46,60 @@ bool AmpSliceAlgorithm::DoProcess(InputBufferT::type &sourceBuffer,
         std::make_shared<MemoryBufferAdaptor>(1, estimatedSlices, sampleRate);
     auto slicesOutputBuffer = fluid::client::BufferT::type(outBuffer);
 
-    auto fastRampUpTime =
-        mApiProvider->GetParam(mBaseParamIdx + kFastRampUpTime)->Value();
-    auto fastRampDownTime =
-        mApiProvider->GetParam(mBaseParamIdx + kFastRampDownTime)->Value();
-    auto slowRampUpTime =
-        mApiProvider->GetParam(mBaseParamIdx + kSlowRampUpTime)->Value();
-    auto slowRampDownTime =
-        mApiProvider->GetParam(mBaseParamIdx + kSlowRampDownTime)->Value();
-    auto onThreshold =
-        mApiProvider->GetParam(mBaseParamIdx + kOnThreshold)->Value();
-    auto offThreshold =
-        mApiProvider->GetParam(mBaseParamIdx + kOffThreshold)->Value();
-    auto floorValue =
-        mApiProvider->GetParam(mBaseParamIdx + kSilenceThreshold)->Value();
-    auto debounceTime =
-        mApiProvider->GetParam(mBaseParamIdx + kDebounce)->Value();
-    auto hiPassFreq =
-        mApiProvider->GetParam(mBaseParamIdx + kHiPassFreq)->Value();
+    auto fastRampUpTime = GetParamValue(kFastRampUpTime);
+    auto fastRampDownTime = GetParamValue(kFastRampDownTime);
+    auto slowRampUpTime = GetParamValue(kSlowRampUpTime);
+    auto slowRampDownTime = GetParamValue(kSlowRampDownTime);
+    auto onThreshold = GetParamValue(kOnThreshold);
+    auto offThreshold = GetParamValue(kOffThreshold);
+    auto floorValue = GetParamValue(kSilenceThreshold);
+    auto debounceTime = GetParamValue(kDebounce);
+    auto hiPassFreq = GetParamValue(kHiPassFreq);
 
-    mParams.template set<0>(std::move(sourceBuffer), nullptr);
-    mParams.template set<1>(std::move(LongT::type(0)), nullptr);
-    mParams.template set<2>(std::move(LongT::type(-1)), nullptr);
-    mParams.template set<3>(std::move(LongT::type(0)), nullptr);
-    mParams.template set<4>(std::move(LongT::type(-1)), nullptr);
-    mParams.template set<5>(std::move(slicesOutputBuffer), nullptr);
-    mParams.template set<6>(std::move(LongT::type(fastRampUpTime)), nullptr);
-    mParams.template set<7>(std::move(LongT::type(fastRampDownTime)), nullptr);
-    mParams.template set<8>(std::move(LongT::type(slowRampUpTime)), nullptr);
-    mParams.template set<9>(std::move(LongT::type(slowRampDownTime)), nullptr);
-    mParams.template set<10>(std::move(FloatT::type(onThreshold)), nullptr);
-    mParams.template set<11>(std::move(FloatT::type(offThreshold)), nullptr);
-    mParams.template set<12>(std::move(FloatT::type(floorValue)), nullptr);
-    mParams.template set<13>(std::move(LongT::type(debounceTime)), nullptr);
-    mParams.template set<14>(std::move(FloatT::type(hiPassFreq)), nullptr);
+    // FluCoMa Client Parameter Indices
+    constexpr int kFlucomaInputAudio = 0;
+    constexpr int kFlucomaStats = 1;
+    constexpr int kFlucomaStartFrame = 2;
+    constexpr int kFlucomaNumFrames = 3;
+    constexpr int kFlucomaStartChan = 4;
+    constexpr int kFlucomaNumChans = 5; // Slices output
+    constexpr int kFlucomaFastRampUp = 6;
+    constexpr int kFlucomaFastRampDown = 7;
+    constexpr int kFlucomaSlowRampUp = 8;
+    constexpr int kFlucomaSlowRampDown = 9;
+    constexpr int kFlucomaOnThreshold = 10;
+    constexpr int kFlucomaOffThreshold = 11;
+    constexpr int kFlucomaFloor = 12;
+    constexpr int kFlucomaMinSliceLength = 13;
+    constexpr int kFlucomaHiPassFreq = 14;
+
+    mParams.template set<kFlucomaInputAudio>(std::move(sourceBuffer), nullptr);
+    mParams.template set<kFlucomaStats>(std::move(LongT::type(0)), nullptr);
+    mParams.template set<kFlucomaStartFrame>(std::move(LongT::type(-1)),
+                                             nullptr);
+    mParams.template set<kFlucomaNumFrames>(std::move(LongT::type(0)), nullptr);
+    mParams.template set<kFlucomaStartChan>(std::move(LongT::type(-1)),
+                                            nullptr);
+    mParams.template set<kFlucomaNumChans>(std::move(slicesOutputBuffer),
+                                           nullptr);
+    mParams.template set<kFlucomaFastRampUp>(
+        std::move(LongT::type(fastRampUpTime)), nullptr);
+    mParams.template set<kFlucomaFastRampDown>(
+        std::move(LongT::type(fastRampDownTime)), nullptr);
+    mParams.template set<kFlucomaSlowRampUp>(
+        std::move(LongT::type(slowRampUpTime)), nullptr);
+    mParams.template set<kFlucomaSlowRampDown>(
+        std::move(LongT::type(slowRampDownTime)), nullptr);
+    mParams.template set<kFlucomaOnThreshold>(
+        std::move(FloatT::type(onThreshold)), nullptr);
+    mParams.template set<kFlucomaOffThreshold>(
+        std::move(FloatT::type(offThreshold)), nullptr);
+    mParams.template set<kFlucomaFloor>(std::move(FloatT::type(floorValue)),
+                                        nullptr);
+    mParams.template set<kFlucomaMinSliceLength>(
+        std::move(LongT::type(debounceTime)), nullptr);
+    mParams.template set<kFlucomaHiPassFreq>(
+        std::move(FloatT::type(hiPassFreq)), nullptr);
 
     mClient = NRTThreadedAmpSliceClient(mParams, mContext);
     mClient.setSynchronous(false);

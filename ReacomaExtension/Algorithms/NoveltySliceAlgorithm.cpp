@@ -7,44 +7,32 @@ NoveltySliceAlgorithm::NoveltySliceAlgorithm(ReacomaExtension *apiProvider)
 
 NoveltySliceAlgorithm::~NoveltySliceAlgorithm() = default;
 
-void NoveltySliceAlgorithm::RegisterParameters() {
-    mBaseParamIdx = mApiProvider->NParams();
-
-    for (int i = 0; i < NoveltySliceAlgorithm::kNumParams; ++i) {
-        mApiProvider->AddParam();
-    }
-
-    mApiProvider->GetParam(mBaseParamIdx + NoveltySliceAlgorithm::kThreshold)
-        ->InitDouble("Threshold", 0.5, 0.0, 1.0, 0.01);
-
-    mApiProvider->GetParam(mBaseParamIdx + NoveltySliceAlgorithm::kKernelSize)
-        ->InitInt("Kernel Size", 3, 3, 101);
-
-    mApiProvider->GetParam(mBaseParamIdx + NoveltySliceAlgorithm::kFilterSize)
-        ->InitInt("Filter Size", 1, 1, 31);
-
-    mApiProvider
-        ->GetParam(mBaseParamIdx + NoveltySliceAlgorithm::kMinSliceLength)
-        ->InitInt("Minimum Slice Length", 2, 2, 100);
-
-    mApiProvider->GetParam(mBaseParamIdx + NoveltySliceAlgorithm::kWindowSize)
-        ->InitInt("Window Size", 1024, 2, 65536);
-
-    mApiProvider->GetParam(mBaseParamIdx + NoveltySliceAlgorithm::kHopSize)
-        ->InitInt("Hop Size", 512, 2, 65536);
-
-    mApiProvider->GetParam(mBaseParamIdx + NoveltySliceAlgorithm::kFFTSize)
-        ->InitInt("FFT Size", 1024, 2, 65536);
-
-    IParam *algoParam = mApiProvider->GetParam(
-        mBaseParamIdx + NoveltySliceAlgorithm::kAlgorithm);
-    algoParam->InitEnum("Algorithm", NoveltySliceAlgorithm::kSpectrum,
-                        NoveltySliceAlgorithm::kNumAlgorithmOptions - 1);
-    algoParam->SetDisplayText(NoveltySliceAlgorithm::kSpectrum, "Spectrum");
-    algoParam->SetDisplayText(NoveltySliceAlgorithm::kMFCC, "MFCC");
-    algoParam->SetDisplayText(NoveltySliceAlgorithm::kChroma, "Chroma");
-    algoParam->SetDisplayText(NoveltySliceAlgorithm::kPitch, "Pitch");
-    algoParam->SetDisplayText(NoveltySliceAlgorithm::kLoudness, "Loudness");
+std::vector<ParameterDescriptor>
+NoveltySliceAlgorithm::GetParamDescriptors() const {
+    std::vector<ParameterDescriptor> descriptors;
+    descriptors.push_back(
+        {ParameterDescriptor::Double, "Threshold", 0.5, 0.0, 1.0, 0.01});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Kernel Size", 3.0, 3.0, 101.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Filter Size", 1.0, 1.0, 31.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Minimum Slice Length", 2.0, 2.0, 100.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Window Size", 1024.0, 2.0, 65536.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "Hop Size", 512.0, 2.0, 65536.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Int, "FFT Size", 1024.0, 2.0, 65536.0});
+    descriptors.push_back(
+        {ParameterDescriptor::Enum,
+         "Algorithm",
+         static_cast<double>(kSpectrum),
+         0.0,
+         static_cast<double>(kNumAlgorithmOptions - 1),
+         0.0,
+         {"Spectrum", "MFCC", "Chroma", "Pitch", "Loudness"}});
+    return descriptors;
 }
 
 bool NoveltySliceAlgorithm::DoProcess(InputBufferT::type &sourceBuffer,
@@ -55,37 +43,14 @@ bool NoveltySliceAlgorithm::DoProcess(InputBufferT::type &sourceBuffer,
         std::make_shared<MemoryBufferAdaptor>(1, estimatedSlices, sampleRate);
     auto slicesOutputBuffer = fluid::client::BufferT::type(outBuffer);
 
-    auto threshold =
-        mApiProvider
-            ->GetParam(mBaseParamIdx + NoveltySliceAlgorithm::kThreshold)
-            ->Value();
-
-    auto kernelsize =
-        mApiProvider
-            ->GetParam(mBaseParamIdx + NoveltySliceAlgorithm::kKernelSize)
-            ->Value();
-    auto filtersize =
-        mApiProvider
-            ->GetParam(mBaseParamIdx + NoveltySliceAlgorithm::kFilterSize)
-            ->Value();
-    auto minslicelength =
-        mApiProvider
-            ->GetParam(mBaseParamIdx + NoveltySliceAlgorithm::kMinSliceLength)
-            ->Value();
-    auto windowSize =
-        mApiProvider
-            ->GetParam(mBaseParamIdx + NoveltySliceAlgorithm::kWindowSize)
-            ->Value();
-    auto hopSize =
-        mApiProvider->GetParam(mBaseParamIdx + NoveltySliceAlgorithm::kHopSize)
-            ->Value();
-    auto fftSize =
-        mApiProvider->GetParam(mBaseParamIdx + NoveltySliceAlgorithm::kFFTSize)
-            ->Value();
-    auto algorithm =
-        mApiProvider
-            ->GetParam(mBaseParamIdx + NoveltySliceAlgorithm::kAlgorithm)
-            ->Value();
+    auto threshold = GetParamValue(kThreshold);
+    auto kernelsize = GetParamValue(kKernelSize);
+    auto filtersize = GetParamValue(kFilterSize);
+    auto minslicelength = GetParamValue(kMinSliceLength);
+    auto windowSize = GetParamValue(kWindowSize);
+    auto hopSize = GetParamValue(kHopSize);
+    auto fftSize = GetParamValue(kFFTSize);
+    auto algorithm = GetParamValue(kAlgorithm);
 
     if (static_cast<int>(kernelsize) % 2 == 0)
         kernelsize += 1;
