@@ -141,7 +141,7 @@ bool AmpGateAlgorithm::HandleResults(MediaItem *item, MediaItem_Take *take,
     return true;
 }
 
-const char *AmpGateAlgorithm::GetName() const { return "Onset Slice"; }
+const char *AmpGateAlgorithm::GetName() const { return "Amp Gate"; }
 
 int AmpGateAlgorithm::GetNumAlgorithmParams() const { return kNumParams; }
 
