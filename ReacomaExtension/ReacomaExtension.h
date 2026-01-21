@@ -73,6 +73,19 @@ private:
     void OnParamChangeUI(int paramIdx, EParamSource source) override;
     void OnIdle() override;
     void SetupUI(IGraphics *pGraphics);
+    void SetupAlgorithmSelector(IGraphics *pGraphics,
+                                IRECT &currentLayoutBounds,
+                                const ReacomaTheme &theme);
+    void SetupAlgorithmParameters(IGraphics *pGraphics,
+                                  IRECT &currentLayoutBounds,
+                                  const ReacomaTheme &theme);
+    void SetupActionButtons(IGraphics *pGraphics,
+                            const IRECT &actionButtonRowBounds,
+                            const ReacomaTheme &theme);
+    void SetupFooterControls(IGraphics *pGraphics,
+                             const IRECT &bottomUtilityRowBounds,
+                             const ReacomaTheme &theme);
+    void ManageProcessingJobs();
     void StartNextItemInQueue();
     void SaveState();
     void LoadState();

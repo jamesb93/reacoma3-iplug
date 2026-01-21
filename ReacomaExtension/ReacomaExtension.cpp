@@ -154,10 +154,20 @@ void ReacomaExtension::SetupUI(IGraphics *pGraphics) {
     IRECT actionButtonRowBounds =
         remainingArea.GetFromBottom(actionButtonHeight);
     remainingArea.B -= (actionButtonRowBounds.H() + verticalSpacing);
-    IRECT currentLayoutBounds = remainingArea;
 
-    // --- Algorithm Chooser Dropdown ---
+    // Pass remainingArea by reference so it advances
+    SetupAlgorithmSelector(pGraphics, remainingArea, theme);
+    SetupAlgorithmParameters(pGraphics, remainingArea, theme);
+    SetupActionButtons(pGraphics, actionButtonRowBounds, theme);
+    SetupFooterControls(pGraphics, bottomUtilityRowBounds, theme);
+}
+
+void ReacomaExtension::SetupAlgorithmSelector(IGraphics *pGraphics,
+                                              IRECT &currentLayoutBounds,
+                                              const ReacomaTheme &theme) {
     const float algoSelectorHeight = 60.f;
+    const float verticalSpacing = 7.f;
+
     if (currentLayoutBounds.H() >= algoSelectorHeight) {
         IRECT algorithmSelectorRect =
             currentLayoutBounds.GetFromTop(algoSelectorHeight);
@@ -205,11 +215,17 @@ void ReacomaExtension::SetupUI(IGraphics *pGraphics) {
         pAlgoChooser->SetValueStr(
             pAlgoParam->GetDisplayTextAtIdx(mCurrentAlgorithmChoice));
     }
+}
 
+void ReacomaExtension::SetupAlgorithmParameters(IGraphics *pGraphics,
+                                                IRECT &currentLayoutBounds,
+                                                const ReacomaTheme &theme) {
     if (!mCurrentActiveAlgorithmPtr)
         return;
 
-    // --- Algorithm Parameter Controls ---
+    const float controlVisualHeight = 25.f;
+    const float verticalSpacing = 7.f;
+
     int numAlgoParams = mCurrentActiveAlgorithmPtr->GetNumAlgorithmParams();
     for (int i = 0; i < numAlgoParams; ++i) {
         if (currentLayoutBounds.H() < controlVisualHeight)
@@ -237,8 +253,14 @@ void ReacomaExtension::SetupUI(IGraphics *pGraphics) {
 
         currentLayoutBounds.T = controlCellRect.B + verticalSpacing;
     }
+}
 
-    // --- Action Buttons ---
+void ReacomaExtension::SetupActionButtons(IGraphics *pGraphics,
+                                          const IRECT &actionButtonRowBounds,
+                                          const ReacomaTheme &theme) {
+    if (!mCurrentActiveAlgorithmPtr)
+        return;
+
     struct ButtonInfo {
         IActionFunction function;
         const char *label;
@@ -267,8 +289,11 @@ void ReacomaExtension::SetupUI(IGraphics *pGraphics) {
                 b, buttonInfo.label, buttonInfo.function, theme));
         }
     }
+}
 
-    // --- Bottom Utility Row (Auto-Process, Progress Bar, Cancel) ---
+void ReacomaExtension::SetupFooterControls(IGraphics *pGraphics,
+                                           const IRECT &bottomUtilityRowBounds,
+                                           const ReacomaTheme &theme) {
     const float autoProcessControlWidth = 140.f;
     const float cancelButtonWidth = 80.f;
 
@@ -418,6 +443,10 @@ void ReacomaExtension::OnIdle() {
         }
     }
 
+    ManageProcessingJobs();
+}
+
+void ReacomaExtension::ManageProcessingJobs() {
     if (!mIsProcessingBatch) {
         return;
     }
