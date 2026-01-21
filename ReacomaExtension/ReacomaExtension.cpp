@@ -140,6 +140,11 @@ ReacomaExtension::ReacomaExtension(reaper_plugin_info_t *pRec)
 void ReacomaExtension::OnUIClose() {
     SaveState();
     mGUIToggle = 0;
+
+    // Nullify pointers to destroyed controls to avoid use-after-free in OnIdle
+    mProgressBar = nullptr;
+    mCancelButton = nullptr;
+    mAutoProcessButton = nullptr;
 }
 
 void ReacomaExtension::SetupUI(IGraphics *pGraphics) {
