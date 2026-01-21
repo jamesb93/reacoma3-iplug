@@ -32,5 +32,14 @@ struct ReacomaTheme {
     float borderThickness = 1.f;
     float padding = 2.f;
 
+    // Layout
+    float globalFramePadding = 15.f;
+    float verticalSpacing = 7.f;
+    float controlVisualHeight = 25.f;
+    float actionButtonHeight = 30.f;
+    float algoSelectorHeight = 60.f;
+    float autoProcessControlWidth = 140.f;
+    float cancelButtonWidth = 80.f;
+
     static ReacomaTheme CreateDefault() { return ReacomaTheme{}; }
 };

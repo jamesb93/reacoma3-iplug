@@ -92,20 +92,40 @@ bool NoveltySliceAlgorithm::DoProcess(InputBufferT::type &sourceBuffer,
     if (static_cast<int>(filtersize) % 2 == 0)
         filtersize += 1;
 
-    mParams.template set<0>(std::move(sourceBuffer), nullptr);
-    mParams.template set<1>(std::move(LongT::type(0)), nullptr);
-    mParams.template set<2>(std::move(LongT::type(-1)), nullptr);
-    mParams.template set<3>(std::move(LongT::type(0)), nullptr);
-    mParams.template set<4>(std::move(LongT::type(-1)), nullptr);
-    mParams.template set<5>(std::move(slicesOutputBuffer), nullptr);
-    mParams.template set<6>(std::move(LongT::type(algorithm)), nullptr);
-    mParams.template set<7>(
+    // FluCoMa Client Parameter Indices
+    constexpr int kFlucomaInputAudio = 0;
+    constexpr int kFlucomaStats = 1;
+    constexpr int kFlucomaStartFrame = 2;
+    constexpr int kFlucomaNumFrames = 3;
+    constexpr int kFlucomaStartChan = 4;
+    constexpr int kFlucomaNumChans = 5; // Used for slices output in this client
+    constexpr int kFlucomaAlgorithm = 6;
+    constexpr int kFlucomaKernelSize = 7;
+    constexpr int kFlucomaThreshold = 8;
+    constexpr int kFlucomaFilterSize = 9;
+    constexpr int kFlucomaMinSliceLength = 10;
+    constexpr int kFlucomaFFTParams = 11;
+
+    mParams.template set<kFlucomaInputAudio>(std::move(sourceBuffer), nullptr);
+    mParams.template set<kFlucomaStats>(std::move(LongT::type(0)), nullptr);
+    mParams.template set<kFlucomaStartFrame>(std::move(LongT::type(-1)),
+                                             nullptr);
+    mParams.template set<kFlucomaNumFrames>(std::move(LongT::type(0)), nullptr);
+    mParams.template set<kFlucomaStartChan>(std::move(LongT::type(-1)),
+                                            nullptr);
+    mParams.template set<kFlucomaNumChans>(std::move(slicesOutputBuffer),
+                                           nullptr);
+    mParams.template set<kFlucomaAlgorithm>(std::move(LongT::type(algorithm)),
+                                            nullptr);
+    mParams.template set<kFlucomaKernelSize>(
         std::move(LongRuntimeMaxParam(kernelsize, kernelsize)), nullptr);
-    mParams.template set<8>(std::move(FloatT::type(threshold)), nullptr);
-    mParams.template set<9>(
+    mParams.template set<kFlucomaThreshold>(std::move(FloatT::type(threshold)),
+                                            nullptr);
+    mParams.template set<kFlucomaFilterSize>(
         std::move(LongRuntimeMaxParam(filtersize, filtersize)), nullptr);
-    mParams.template set<10>(std::move(LongT::type(minslicelength)), nullptr);
-    mParams.template set<11>(
+    mParams.template set<kFlucomaMinSliceLength>(
+        std::move(LongT::type(minslicelength)), nullptr);
+    mParams.template set<kFlucomaFFTParams>(
         std::move(fluid::client::FFTParams(windowSize, hopSize, fftSize,
                                            std::max(windowSize, fftSize))),
         nullptr);

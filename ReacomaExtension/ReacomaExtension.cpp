@@ -1,28 +1,29 @@
+#include "ReacomaExtension.h"
+
+#define REAPERAPI_IMPLEMENT
+#include "ReaperExt_include_in_plug_src.h"
+
 #include "IControl.h"
 #include "IControls.h"
 #include "IGraphicsStructs.h"
-#define REAPERAPI_IMPLEMENT
 
-#include "ReacomaExtension.h"
-#include "ReaperExt_include_in_plug_src.h"
-
-#include <fstream>
 #include <chrono>
+#include <fstream>
 
 #include "ReacomaTheme.h"
+#include "Algorithms/AmpGateAlgorithm.h"
+#include "Algorithms/AmpSliceAlgorithm.h"
+#include "Algorithms/HPSSAlgorithm.h"
+#include "Algorithms/NMFAlgorithm.h"
+#include "Algorithms/NoveltySliceAlgorithm.h"
+#include "Algorithms/OnsetSliceAlgorithm.h"
 #include "Algorithms/ProcessingJob.h"
+#include "Algorithms/TransientAlgorithm.h"
+#include "Algorithms/TransientSliceAlgorithm.h"
 #include "Components/ReacomaButton.h"
 #include "Components/ReacomaParamTextControl.h"
 #include "Components/ReacomaProgressBar.h"
 #include "Components/ReacomaSegmented.h"
-#include "Algorithms/HPSSAlgorithm.h"
-#include "Algorithms/NMFAlgorithm.h"
-#include "Algorithms/TransientAlgorithm.h"
-#include "Algorithms/TransientSliceAlgorithm.h"
-#include "Algorithms/NoveltySliceAlgorithm.h"
-#include "Algorithms/OnsetSliceAlgorithm.h"
-#include "Algorithms/AmpGateAlgorithm.h"
-#include "Algorithms/AmpSliceAlgorithm.h"
 
 template <ReacomaExtension::Mode M> struct ProcessAction {
     void operator()(IControl *pCaller) {
@@ -137,23 +138,19 @@ void ReacomaExtension::SetupUI(IGraphics *pGraphics) {
 
     // --- Layout Constants ---
     const IRECT bounds = pGraphics->GetBounds();
-    const float globalFramePadding = 15.f;
-    const float verticalSpacing = 7.f;
-    const float controlVisualHeight = 25.f;
-    const float actionButtonHeight = 30.f;
 
     // --- Main Layout Areas ---
-    IRECT mainContentArea = bounds.GetPadded(-globalFramePadding);
+    IRECT mainContentArea = bounds.GetPadded(-theme.globalFramePadding);
     mainContentArea.T += 5.f; // Top margin
     mainContentArea.B -= 5.f; // Bottom margin
 
     IRECT remainingArea = mainContentArea;
     IRECT bottomUtilityRowBounds =
-        remainingArea.GetFromBottom(controlVisualHeight);
-    remainingArea.B -= (bottomUtilityRowBounds.H() + verticalSpacing);
+        remainingArea.GetFromBottom(theme.controlVisualHeight);
+    remainingArea.B -= (bottomUtilityRowBounds.H() + theme.verticalSpacing);
     IRECT actionButtonRowBounds =
-        remainingArea.GetFromBottom(actionButtonHeight);
-    remainingArea.B -= (actionButtonRowBounds.H() + verticalSpacing);
+        remainingArea.GetFromBottom(theme.actionButtonHeight);
+    remainingArea.B -= (actionButtonRowBounds.H() + theme.verticalSpacing);
 
     // Pass remainingArea by reference so it advances
     SetupAlgorithmSelector(pGraphics, remainingArea, theme);
@@ -165,13 +162,10 @@ void ReacomaExtension::SetupUI(IGraphics *pGraphics) {
 void ReacomaExtension::SetupAlgorithmSelector(IGraphics *pGraphics,
                                               IRECT &currentLayoutBounds,
                                               const ReacomaTheme &theme) {
-    const float algoSelectorHeight = 60.f;
-    const float verticalSpacing = 7.f;
-
-    if (currentLayoutBounds.H() >= algoSelectorHeight) {
+    if (currentLayoutBounds.H() >= theme.algoSelectorHeight) {
         IRECT algorithmSelectorRect =
-            currentLayoutBounds.GetFromTop(algoSelectorHeight);
-        currentLayoutBounds.T = algorithmSelectorRect.B + verticalSpacing;
+            currentLayoutBounds.GetFromTop(theme.algoSelectorHeight);
+        currentLayoutBounds.T = algorithmSelectorRect.B + theme.verticalSpacing;
 
         const IVStyle menuButtonStyle =
             DEFAULT_STYLE.WithColor(kFG, theme.inactive)
@@ -185,7 +179,7 @@ void ReacomaExtension::SetupAlgorithmSelector(IGraphics *pGraphics,
             algorithmSelectorRect,
             [this, pGraphics](IControl *pCaller) {
                 SplashClickActionFunc(pCaller);
-                static IPopupMenu menu{
+                IPopupMenu menu{
                     "", {}, [this, pCaller](IPopupMenu *pMenu) {
                         int itemIndex = pMenu->GetChosenItemIdx();
                         if (itemIndex > -1) {
@@ -223,18 +217,15 @@ void ReacomaExtension::SetupAlgorithmParameters(IGraphics *pGraphics,
     if (!mCurrentActiveAlgorithmPtr)
         return;
 
-    const float controlVisualHeight = 25.f;
-    const float verticalSpacing = 7.f;
-
     int numAlgoParams = mCurrentActiveAlgorithmPtr->GetNumAlgorithmParams();
     for (int i = 0; i < numAlgoParams; ++i) {
-        if (currentLayoutBounds.H() < controlVisualHeight)
+        if (currentLayoutBounds.H() < theme.controlVisualHeight)
             break;
 
         int globalParamIdx = mCurrentActiveAlgorithmPtr->GetGlobalParamIdx(i);
         IParam *pParam = GetParam(globalParamIdx);
         IRECT controlCellRect =
-            currentLayoutBounds.GetFromTop(controlVisualHeight);
+            currentLayoutBounds.GetFromTop(theme.controlVisualHeight);
 
         if (pParam->Type() == IParam::kTypeDouble ||
             pParam->Type() == IParam::kTypeInt) {
@@ -251,7 +242,7 @@ void ReacomaExtension::SetupAlgorithmParameters(IGraphics *pGraphics,
                     controlCellRect, globalParamIdx, labels, theme));
         }
 
-        currentLayoutBounds.T = controlCellRect.B + verticalSpacing;
+        currentLayoutBounds.T = controlCellRect.B + theme.verticalSpacing;
     }
 }
 
@@ -294,14 +285,12 @@ void ReacomaExtension::SetupActionButtons(IGraphics *pGraphics,
 void ReacomaExtension::SetupFooterControls(IGraphics *pGraphics,
                                            const IRECT &bottomUtilityRowBounds,
                                            const ReacomaTheme &theme) {
-    const float autoProcessControlWidth = 140.f;
-    const float cancelButtonWidth = 80.f;
 
     IRECT paddedBottomRow = bottomUtilityRowBounds.GetHPadded(-theme.padding);
 
     IRECT autoProcessBounds =
-        paddedBottomRow.GetFromLeft(autoProcessControlWidth);
-    IRECT cancelBounds = paddedBottomRow.GetFromRight(cancelButtonWidth);
+        paddedBottomRow.GetFromLeft(theme.autoProcessControlWidth);
+    IRECT cancelBounds = paddedBottomRow.GetFromRight(theme.cancelButtonWidth);
     IRECT progressBounds = paddedBottomRow; // Start with the full padded width
     progressBounds.L = autoProcessBounds.R + theme.padding * 5;
     progressBounds.R = cancelBounds.L - theme.padding * 5;
