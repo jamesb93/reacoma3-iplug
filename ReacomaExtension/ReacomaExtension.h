@@ -15,23 +15,6 @@
 #include <string>
 #include <vector>
 
-#pragma once
-
-#include "ReaperExt_include_in_plug_hdr.h"
-#include "reaper_plugin.h"
-#include "IControl.h"
-#include "IGraphicsStructs.h"
-
-#include "ibmplexmono.hpp"
-#include "roboto.hpp"
-
-#include <chrono>
-#include <list>
-#include <deque>
-#include <memory>
-#include <string>
-#include <vector>
-
 #include "Algorithms/IAlgorithm.h"
 #include "JobManager.h"
 
@@ -115,8 +98,6 @@ private:
     iplug::igraphics::ReacomaProgressBar *mProgressBar = nullptr;
     iplug::igraphics::ReacomaButton *mCancelButton = nullptr;
     iplug::igraphics::ReacomaButton *mAutoProcessButton = nullptr;
-    ITextControl *mProcessingLabel = nullptr;
-    int mProcessingLabelIdx = -1;
 
     // handle different processing modes
     bool mAutoProcessMode = false;
@@ -125,10 +106,4 @@ private:
     bool mStateLoaded = false;
     std::chrono::steady_clock::time_point mLastParamChangeTime;
     static constexpr auto AUTO_PROCESS_DELAY = std::chrono::milliseconds(50);
-
-    // Ellipsis animation
-    int mEllipsisCount = 0;
-    std::chrono::steady_clock::time_point mLastEllipsisUpdateTime;
-    static constexpr auto ELLIPSIS_UPDATE_DELAY =
-        std::chrono::milliseconds(300);
 };
