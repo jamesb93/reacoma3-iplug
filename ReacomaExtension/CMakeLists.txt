@@ -4,11 +4,13 @@ if(POLICY CMP0091)
     cmake_policy(SET CMP0091 NEW)
 endif()
 
-if(MSVC)
-  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "MSVC Runtime Library" FORCE)
-endif()
+option(DEPLOYMENT_BUILD "Build for packaging/deployment instead of local REAPER installation" OFF)
 
 project(ReacomaExtension VERSION 1.0.0 LANGUAGES C CXX)
+
+if(APPLE AND DEPLOYMENT_BUILD)
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Architectures to build for" FORCE)
+endif()
 
 if(WIN32 AND NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "This project requires 64-bit compilation. Please configure with: cmake .. -A x64")
@@ -265,6 +267,10 @@ if(APPLE)
     )
     
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum macOS deployment version")
+
+    target_compile_options(${BINARY_NAME} PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:-Xarch_x86_64 -mfpmath=sse -msse -msse2 -msse3>
+    )
 elseif(WIN32)
     target_compile_definitions(${BINARY_NAME} PRIVATE IGRAPHICS_GL2)
 
@@ -301,22 +307,8 @@ else()
 endif()
 
 
-if(APPLE AND CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
-    message(STATUS "Intel Mac detected. Adding x86-specific SSE flags.")
-    target_compile_options(${BINARY_NAME} PRIVATE
-        -mfpmath=sse
-        -msse
-        -msse2
-        -msse3
-    )
-else()
-    message(STATUS "Apple Silicon or non-Mac host detected. Skipping x86-specific SSE flags.")
-endif()
-
 set_target_properties(${BINARY_NAME} PROPERTIES OUTPUT_NAME "reaper_ReacomaExtension")
 set_target_properties(${BINARY_NAME} PROPERTIES PREFIX "")
-
-option(DEPLOYMENT_BUILD "Build for packaging/deployment instead of local REAPER installation" OFF)
 
 set(OUTPUT_PATH "")
 
