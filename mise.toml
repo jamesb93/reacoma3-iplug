@@ -28,7 +28,7 @@ dir = "ReacomaExtension/build"
 [tasks.deploy]
 description = "Configures, builds, and finalizes the deployment build."
 run = [
-  "{{mise_bin}} run make-build-folder",
+  "{{mise_bin}} run tests",
   "{{mise_bin}} run configure-deployment",
   "{{mise_bin}} run build",
   "echo done!"
@@ -48,9 +48,18 @@ depends = ["make-build-folder-windows"]
 [tasks.build-windows] # Renamed for clarity
 run = "cmake --build ReacomaExtension/build --config Release"
 
+[tasks.tests-windows]
+description = "Configures (Release), builds, and runs the algorithm tests on Windows"
+run = [
+  "mise run configure-deployment-windows",
+  "cmake --build ReacomaExtension/build --config Release --target ReacomaTests",
+  "pwsh -Command \"cd ReacomaExtension/build; ./ReacomaTests.exe\""
+]
+
 [tasks.deploy-windows]
 description = "Configures and builds for Windows."
 run = [
+  "mise run tests-windows",
   "mise run configure-deployment-windows",
   "mise run build-windows",
 ]
