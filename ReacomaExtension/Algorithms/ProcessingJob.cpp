@@ -38,6 +38,7 @@ std::unique_ptr<ProcessingJob> ProcessingJob::Create(IAlgorithm *prototype,
             for (int i = 0; i < prototype->GetNumAlgorithmParams(); ++i) {
                 algorithm->SetParamValue(i, prototype->GetParamValue(i));
             }
+            algorithm->SetProcessingMode(prototype->GetProcessingMode());
             return std::make_unique<ProcessingJob>(std::move(algorithm), item);
         }
     }
