@@ -4,8 +4,10 @@ namespace iplug {
 namespace igraphics {
 ReacomaSegmented::ReacomaSegmented(
     const IRECT &bounds, int paramIdx,
-    const std::vector<std::string> &segmentLabels, const ReacomaTheme &theme)
-    : IControl(bounds, paramIdx), mSegmentLabels(segmentLabels), mTheme(theme) {
+    const std::vector<std::string> &segmentLabels, const ReacomaTheme &theme,
+    int itemsPerRow)
+    : IControl(bounds, paramIdx), mSegmentLabels(segmentLabels), mTheme(theme),
+      mItemsPerRow(itemsPerRow) {
     CalculateSegmentRects();
 }
 
@@ -13,9 +15,17 @@ void ReacomaSegmented::CalculateSegmentRects() {
     mSegmentRects.clear();
     if (mSegmentLabels.empty())
         return;
-    for (size_t i = 0; i < mSegmentLabels.size(); ++i) {
-        mSegmentRects.push_back(
-            mRECT.SubRectHorizontal(mSegmentLabels.size(), i));
+
+    int numItems = static_cast<int>(mSegmentLabels.size());
+    int nCols = mItemsPerRow > 0 ? mItemsPerRow : numItems;
+    int nRows = (numItems + nCols - 1) / nCols;
+
+    for (int i = 0; i < numItems; ++i) {
+        int row = i / nCols;
+        int col = i % nCols;
+
+        IRECT rowRect = mRECT.SubRectVertical(nRows, row);
+        mSegmentRects.push_back(rowRect.SubRectHorizontal(nCols, col));
     }
 }
 
@@ -52,10 +62,20 @@ void ReacomaSegmented::Draw(IGraphics &g) {
 
     // 2. Draw the main border and dividers over everything for a clean look
     g.DrawRoundRect(mTheme.border, mRECT, mTheme.cornerRadius);
-    for (size_t i = 0; i < mSegmentLabels.size() - 1; ++i) {
-        const IRECT &segmentRect = mSegmentRects[i];
-        g.DrawLine(mTheme.border, segmentRect.R, segmentRect.T, segmentRect.R,
-                   segmentRect.B);
+
+    if (mItemsPerRow <= 0 ||
+        mSegmentLabels.size() <= static_cast<size_t>(mItemsPerRow)) {
+        // Single row - use vertical dividers
+        for (size_t i = 0; i < mSegmentLabels.size() - 1; ++i) {
+            const IRECT &segmentRect = mSegmentRects[i];
+            g.DrawLine(mTheme.border, segmentRect.R, segmentRect.T,
+                       segmentRect.R, segmentRect.B);
+        }
+    } else {
+        // Multi-row - draw borders for each segment to form a grid
+        for (size_t i = 0; i < mSegmentLabels.size(); ++i) {
+            g.DrawRect(mTheme.border, mSegmentRects[i]);
+        }
     }
 
     // 3. Draw the text labels on top
@@ -103,9 +123,11 @@ int ReacomaSegmented::GetSegmentForPos(float x, float y) {
     if (mSegmentLabels.empty() || !mRECT.Contains(x, y))
         return -1;
 
-    float segmentWidth = mRECT.W() / mSegmentLabels.size();
-    int segmentIdx = static_cast<int>((x - mRECT.L) / segmentWidth);
-    return std::clamp(segmentIdx, 0, (int)mSegmentLabels.size() - 1);
+    for (int i = 0; i < static_cast<int>(mSegmentRects.size()); ++i) {
+        if (mSegmentRects[i].Contains(x, y))
+            return i;
+    }
+    return -1;
 }
 } // namespace igraphics
 } // namespace iplug

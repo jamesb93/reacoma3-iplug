@@ -11,7 +11,7 @@ class ReacomaSegmented : public IControl {
 public:
     ReacomaSegmented(const IRECT &bounds, int paramIdx,
                      const std::vector<std::string> &segmentLabels,
-                     const ReacomaTheme &theme);
+                     const ReacomaTheme &theme, int itemsPerRow = 0);
     virtual ~ReacomaSegmented() = default;
 
     void Draw(IGraphics &g) override;
@@ -25,6 +25,7 @@ private:
     ReacomaTheme mTheme;
 
     int mHoveredSegment = -1;
+    int mItemsPerRow = 0;
 
     void CalculateSegmentRects();
     int GetSegmentForPos(float x, float y);

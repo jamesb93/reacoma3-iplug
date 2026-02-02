@@ -255,25 +255,47 @@ void ReacomaExtension::SetupAlgorithmParameters(IGraphics *pGraphics,
 
         int globalParamIdx = mCurrentActiveAlgorithmPtr->GetGlobalParamIdx(i);
         IParam *pParam = GetParam(globalParamIdx);
-        IRECT controlCellRect =
-            currentLayoutBounds.GetFromTop(theme.controlVisualHeight);
 
         if (pParam->Type() == IParam::kTypeDouble ||
             pParam->Type() == IParam::kTypeInt) {
+            IRECT controlCellRect =
+                currentLayoutBounds.GetFromTop(theme.controlVisualHeight);
             pGraphics->AttachControl(new ReacomaParamTextControl(
                 controlCellRect.GetVPadded(-5.f), globalParamIdx, theme));
+            currentLayoutBounds.T = controlCellRect.B + theme.verticalSpacing;
         } else if (pParam->Type() == IParam::kTypeEnum &&
                    pParam->GetMax() > 0) {
             std::vector<std::string> labels;
-            for (int val = 0; val <= pParam->GetMax(); ++val)
+            int numItems = pParam->GetMax() + 1;
+            for (int val = 0; val < numItems; ++val)
                 labels.push_back(pParam->GetDisplayTextAtIdx(val));
 
-            if (!labels.empty())
-                pGraphics->AttachControl(new ReacomaSegmented(
-                    controlCellRect, globalParamIdx, labels, theme));
-        }
+            if (!labels.empty()) {
+                int itemsPerRow = 0;
+                int numRows = 1;
 
-        currentLayoutBounds.T = controlCellRect.B + theme.verticalSpacing;
+                // If more than 4 items, wrap them to 3 per row to give more
+                // space for text
+                if (numItems > 4) {
+                    itemsPerRow = 3;
+                    numRows = (numItems + itemsPerRow - 1) / itemsPerRow;
+                }
+
+                float height = theme.controlVisualHeight * numRows;
+
+                if (currentLayoutBounds.H() < height)
+                    break;
+
+                IRECT controlCellRect = currentLayoutBounds.GetFromTop(height);
+
+                pGraphics->AttachControl(
+                    new ReacomaSegmented(controlCellRect, globalParamIdx,
+                                         labels, theme, itemsPerRow));
+
+                currentLayoutBounds.T =
+                    controlCellRect.B + theme.verticalSpacing;
+            }
+        }
     }
 }
 
