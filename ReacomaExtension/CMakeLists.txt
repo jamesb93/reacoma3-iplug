@@ -129,20 +129,12 @@ else() # Linux
   set(SWELL_SOURCES "${SWELL_PATH}/swell-modstub-generic.cpp")
 endif()
 
-set(REACOMA_SOURCES
-    # Main project files
-    "ReacomaExtension.cpp"
-    "ReacomaExtension.h"
+set(REACOMA_CORE_SOURCES
     "JobManager.cpp"
     "JobManager.h"
     "config.h"
     "VectorBufferAdaptor.cpp"
     "VectorBufferAdaptor.h"
-
-    # iPlug2 sources
-    ${IPLUG_CORE_SOURCES}
-    ${IGRAPHICS_SOURCES}
-    ${SWELL_SOURCES}
 
     # Algorithms
     "Algorithms/AmpGateAlgorithm.cpp"
@@ -152,6 +144,7 @@ set(REACOMA_SOURCES
     "Algorithms/HPSSAlgorithm.h"
     "Algorithms/IAlgorithm.cpp"
     "Algorithms/IAlgorithm.h"
+    "Algorithms/IParameterProvider.h"
     "Algorithms/NMFAlgorithm.cpp"
     "Algorithms/NMFAlgorithm.h"
     "Algorithms/NoveltySliceAlgorithm.cpp"
@@ -166,6 +159,17 @@ set(REACOMA_SOURCES
     "Algorithms/TransientSliceAlgorithm.h"
     "Algorithms/AmpSliceAlgorithm.cpp"
     "Algorithms/AmpSliceAlgorithm.h"
+)
+
+set(REACOMA_EXTENSION_SOURCES
+    # Main project files
+    "ReacomaExtension.cpp"
+    "ReacomaExtension.h"
+
+    # iPlug2 sources
+    ${IPLUG_CORE_SOURCES}
+    ${IGRAPHICS_SOURCES}
+    ${SWELL_SOURCES}
 
     # UI Components
     "Components/ReacomaButton.cpp"
@@ -188,25 +192,35 @@ set(REACOMA_SOURCES
 )
 
 if(WIN32)
-    list(APPEND REACOMA_SOURCES "resources/main.rc")
+    list(APPEND REACOMA_EXTENSION_SOURCES "resources/main.rc")
 endif()
 
-add_library(${BINARY_NAME} SHARED ${REACOMA_SOURCES})
-
-if(MSVC)
-    set_property(TARGET ${BINARY_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif()
+add_library(ReacomaCore STATIC ${REACOMA_CORE_SOURCES})
 
 # Add flucoma-core subdirectory
 # The static runtime library setting above will be inherited
 add_subdirectory(${FLUCOMA_CORE_PATH} ${CMAKE_BINARY_DIR}/flucoma-core-build)
 
-target_link_libraries(${BINARY_NAME} PUBLIC FLUID_DECOMPOSITION)
+target_link_libraries(ReacomaCore PUBLIC FLUID_DECOMPOSITION)
+
+target_include_directories(ReacomaCore PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Algorithms"
+    "${REAPER_SDK_PATH}"
+    "${WDL_PATH}"
+    "${SWELL_PATH}"
+)
+
+add_library(${BINARY_NAME} SHARED ${REACOMA_EXTENSION_SOURCES})
+target_link_libraries(${BINARY_NAME} PUBLIC ReacomaCore)
+
+if(MSVC)
+    set_property(TARGET ReacomaCore PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set_property(TARGET ${BINARY_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
 
 target_include_directories(${BINARY_NAME} PRIVATE
     # Project-specific paths
-    "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Algorithms"
     "${CMAKE_CURRENT_SOURCE_DIR}/Components"
     "${CMAKE_CURRENT_SOURCE_DIR}/resources"
 
@@ -232,9 +246,6 @@ target_include_directories(${BINARY_NAME} PRIVATE
     "${DEPS_PATH}/IGraphics/yoga/yoga"
     "${DEPS_PATH}/IGraphics/glad_GL2/include"
     "${DEPS_PATH}/IGraphics/glad_GL2/src"
-
-    # REAPER SDK path
-    "${REAPER_SDK_PATH}"
 )
 
 if (APPLE)
@@ -336,3 +347,42 @@ endif()
 
 set_target_properties(${BINARY_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_PATH}")
 set_target_properties(${BINARY_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_PATH}")
+
+# --- Tests ---
+
+option(BUILD_TESTS "Build tests" ON)
+
+if(BUILD_TESTS)
+    include(FetchContent)
+    FetchContent_Declare(
+      Catch2
+      GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+      GIT_TAG        v3.4.0
+    )
+    FetchContent_Declare(
+      ApprovalTests
+      GIT_REPOSITORY https://github.com/approvals/ApprovalTests.cpp.git
+      GIT_TAG        v.10.13.0
+    )
+    FetchContent_MakeAvailable(Catch2 ApprovalTests)
+
+    add_executable(ReacomaTests
+        tests/TestAlgorithms.cpp
+        tests/MockReaperAPI.cpp
+    )
+
+    target_link_libraries(ReacomaTests PRIVATE
+        ReacomaCore
+        Catch2::Catch2
+        ApprovalTests::ApprovalTests
+    )
+
+    target_include_directories(ReacomaTests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${REAPER_SDK_PATH}"
+    )
+
+    if(APPLE)
+        target_link_libraries(ReacomaTests PRIVATE "-framework Foundation")
+    endif()
+endif()
