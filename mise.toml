@@ -57,3 +57,13 @@ run = [
 
 [tasks.clean-windows]
 run = '''pwsh -Command "if (Test-Path 'ReacomaExtension/build') { Remove-Item -Path 'ReacomaExtension/build' -Recurse -Force }"'''
+
+[tasks.tests]
+description = "Configures (Release), builds, and runs the algorithm tests"
+run = [
+  "mise run configure Release",
+  "ninja ReacomaTests",
+  "./ReacomaTests"
+]
+dir = "ReacomaExtension/build"
+depends = ["make-build-folder"]
