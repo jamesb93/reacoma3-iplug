@@ -49,6 +49,7 @@ ReacomaExtension::ReacomaExtension(reaper_plugin_info_t *pRec)
     IMPAPI(GetMediaItemInfo_Value);
     IMPAPI(GetMediaSourceLength);
     IMPAPI(GetNumTakeMarkers);
+    IMPAPI(GetTakeMarker);
     IMPAPI(IsMediaItemSelected);
     IMPAPI(DeleteTakeMarker);
     IMPAPI(ColorToNative);
@@ -288,7 +289,9 @@ void ReacomaExtension::SetupActionButtons(IGraphics *pGraphics,
     };
     std::vector<ButtonInfo> buttonsToCreate;
 
-    if (mCurrentActiveAlgorithmPtr->SupportsSegmentation()) {
+    if (mCurrentActiveAlgorithmPtr->SupportsMarkers()) {
+        buttonsToCreate.push_back(
+            {ProcessAction<ProcessingMode::Markers>{}, "Markers"});
         buttonsToCreate.push_back(
             {ProcessAction<ProcessingMode::Segment>{}, "Segment"});
     }
@@ -449,7 +452,7 @@ void ReacomaExtension::OnIdle() {
                 mCurrentActiveAlgorithmPtr &&
                         mCurrentActiveAlgorithmPtr->CreatesTakes()
                     ? ProcessingMode::ProcessAudio
-                    : ProcessingMode::Segment;
+                    : ProcessingMode::Markers;
 
             Process(modeToRun, true);
         }

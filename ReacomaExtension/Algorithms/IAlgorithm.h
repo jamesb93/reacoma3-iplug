@@ -6,7 +6,7 @@
 class MediaItem;
 class ReacomaExtension;
 
-enum class ProcessingMode { Segment, Regions, ProcessAudio };
+enum class ProcessingMode { Markers, Regions, Segment, ProcessAudio };
 
 struct ParameterDescriptor {
     enum Type { Double, Int, Enum };
@@ -60,7 +60,7 @@ public:
     int GetBaseParamIdx() const { return mBaseParamIdx; }
     void SetBaseParamIdx(int idx) { mBaseParamIdx = idx; }
 
-    virtual bool SupportsSegmentation() = 0;
+    virtual bool SupportsMarkers() = 0;
     virtual bool SupportsRegions() = 0;
     virtual bool CreatesTakes() = 0;
 
@@ -70,5 +70,5 @@ protected:
     ReacomaExtension *mApiProvider;
     int mBaseParamIdx = 0;
     std::vector<double> mParamValues;
-    ProcessingMode mProcessingMode = ProcessingMode::Segment;
+    ProcessingMode mProcessingMode = ProcessingMode::Markers;
 };

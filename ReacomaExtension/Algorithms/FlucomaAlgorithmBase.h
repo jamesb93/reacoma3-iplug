@@ -10,9 +10,13 @@
 #include "wdltypes.h"
 #include "reaper_plugin_functions.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <iomanip>
 #include <sstream>
+
+extern double (*GetTakeMarker)(MediaItem_Take *take, int idx, char *nameOut,
+                               int nameOut_sz, int *colorOutOptional);
 
 using namespace fluid;
 using namespace client;
@@ -112,6 +116,10 @@ public:
         bool success = HandleResults(mItemForAsync, mTakeForAsync,
                                      mNumChannelsForAsync, mSampleRateForAsync);
 
+        if (success && this->GetProcessingMode() == ProcessingMode::Segment) {
+            SplitItemAtTakeMarkers(mItemForAsync, mTakeForAsync);
+        }
+
         mItemForAsync = nullptr;
         mTakeForAsync = nullptr;
 
@@ -128,7 +136,7 @@ public:
 
     double GetProgress() override final { return mProgress; }
 
-    bool SupportsSegmentation() override { return true; }
+    bool SupportsMarkers() override { return true; }
 
     bool SupportsRegions() override { return true; }
 
@@ -141,6 +149,39 @@ protected:
                            int frameCount, int sampleRate) = 0;
     virtual bool HandleResults(MediaItem *item, MediaItem_Take *take,
                                int numChannels, int sampleRate) = 0;
+
+    void SplitItemAtTakeMarkers(MediaItem *item, MediaItem_Take *take) {
+        if (!item || !take)
+            return;
+
+        int numMarkers = GetNumTakeMarkers(take);
+        if (numMarkers <= 0)
+            return;
+
+        double itemPos = GetMediaItemInfo_Value(item, "D_POSITION");
+        double startOffs = GetMediaItemTakeInfo_Value(take, "D_STARTOFFS");
+        double playrate = GetMediaItemTakeInfo_Value(take, "D_PLAYRATE");
+
+        // Collect marker positions (in source time) and convert to project time
+        std::vector<double> splitPositions;
+        for (int i = 0; i < numMarkers; i++) {
+            double srcPos = GetTakeMarker(take, i, nullptr, 0, nullptr);
+            if (srcPos >= 0) {
+                // Convert source time to project time:
+                // project_time = item_position + (marker_source_time -
+                // take_offset) / playrate
+                double projectTime = itemPos + (srcPos - startOffs) / playrate;
+                splitPositions.push_back(projectTime);
+            }
+        }
+
+        std::sort(splitPositions.begin(), splitPositions.end());
+
+        // Split from right to left so earlier positions remain valid
+        for (int i = static_cast<int>(splitPositions.size()) - 1; i >= 0; i--) {
+            SplitMediaItem(item, splitPositions[i]);
+        }
+    }
 
 protected:
     FluidContext mContext;
@@ -246,7 +287,7 @@ protected:
     }
 
 public:
-    bool SupportsSegmentation() { return false; }
+    bool SupportsMarkers() { return false; }
     bool SupportsRegions() { return false; }
     bool CreatesTakes() { return true; }
 };
