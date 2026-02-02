@@ -36,7 +36,6 @@ public:
     bool StartProcessItemAsync(MediaItem *item) override final {
 
         SetMediaItemInfo_Value(item, "C_LOCK", true);
-        UpdateTimeline();
 
         if (!item || !mApiProvider)
             return false;
@@ -44,12 +43,16 @@ public:
         mProgress = 0.0;
 
         MediaItem_Take *take = GetActiveTake(item);
-        if (!take)
+        if (!take) {
+            SetMediaItemInfo_Value(item, "C_LOCK", false);
             return false;
+        }
 
         PCM_source *source = GetMediaItemTake_Source(take);
-        if (!source)
+        if (!source) {
+            SetMediaItemInfo_Value(item, "C_LOCK", false);
             return false;
+        }
 
         const int sampleRate = GetMediaSourceSampleRate(source);
         const int numChannels = GetMediaSourceNumChannels(source);
@@ -113,6 +116,8 @@ public:
         if (!mItemForAsync || item != mItemForAsync)
             return false;
 
+        SetMediaItemInfo_Value(item, "C_LOCK", false);
+
         bool success = HandleResults(mItemForAsync, mTakeForAsync,
                                      mNumChannelsForAsync, mSampleRateForAsync);
 
@@ -122,8 +127,6 @@ public:
 
         mItemForAsync = nullptr;
         mTakeForAsync = nullptr;
-
-        SetMediaItemInfo_Value(item, "C_LOCK", false);
 
         if (success) {
             UpdateTimeline();
@@ -159,8 +162,10 @@ protected:
             return;
 
         double itemPos = GetMediaItemInfo_Value(item, "D_POSITION");
+        double itemLen = GetMediaItemInfo_Value(item, "D_LENGTH");
         double startOffs = GetMediaItemTakeInfo_Value(take, "D_STARTOFFS");
         double playrate = GetMediaItemTakeInfo_Value(take, "D_PLAYRATE");
+        double epsilon = 0.0001; // Avoid splitting at the very start or end
 
         // Collect marker positions (in source time) and convert to project time
         std::vector<double> splitPositions;
@@ -171,11 +176,19 @@ protected:
                 // project_time = item_position + (marker_source_time -
                 // take_offset) / playrate
                 double projectTime = itemPos + (srcPos - startOffs) / playrate;
-                splitPositions.push_back(projectTime);
+
+                // Only split if within item bounds (with small epsilon)
+                if (projectTime > itemPos + epsilon &&
+                    projectTime < itemPos + itemLen - epsilon) {
+                    splitPositions.push_back(projectTime);
+                }
             }
         }
 
         std::sort(splitPositions.begin(), splitPositions.end());
+        splitPositions.erase(
+            std::unique(splitPositions.begin(), splitPositions.end()),
+            splitPositions.end());
 
         // Split from right to left so earlier positions remain valid
         for (int i = static_cast<int>(splitPositions.size()) - 1; i >= 0; i--) {
@@ -282,6 +295,8 @@ protected:
                 GetSetMediaItemTakeInfo(newTake, "P_SOURCE", newSource);
                 GetSetMediaItemTakeInfo(newTake, "P_NAME",
                                         (char *)takeName.c_str());
+                double zero = 0.0;
+                GetSetMediaItemTakeInfo(newTake, "D_STARTOFFS", &zero);
             }
         }
     }

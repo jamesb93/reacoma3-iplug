@@ -41,13 +41,19 @@ private:
             DeleteTakeMarker(take, i);
 
         double itemLength = GetMediaItemInfo_Value(item, "D_LENGTH");
+        double takeOffset = GetMediaItemTakeInfo_Value(take, "D_STARTOFFS");
+        double playrate = GetMediaItemTakeInfo_Value(take, "D_PLAYRATE");
+        double maxSourceTime = itemLength * playrate;
+
         auto view = reader.samps(0);
         for (fluid::index i = 0; i < view.size(); i++) {
-            if (view(i) > 0) {
-                double markerTimeInSeconds =
+            if (view(i) >= 0) {
+                double timeInSeconds =
                     static_cast<double>(view(i)) / sampleRate;
-                if (markerTimeInSeconds < itemLength)
-                    SetTakeMarker(take, -1, "", &markerTimeInSeconds, nullptr);
+                if (timeInSeconds < maxSourceTime) {
+                    double srcPos = takeOffset + timeInSeconds;
+                    SetTakeMarker(take, -1, "", &srcPos, nullptr);
+                }
             }
         }
     }
@@ -64,6 +70,10 @@ private:
 
         double itemPos = GetMediaItemInfo_Value(item, "D_POSITION");
         double itemLen = GetMediaItemInfo_Value(item, "D_LENGTH");
+        MediaItem_Take *take = GetActiveTake(item);
+        double playrate =
+            take ? GetMediaItemTakeInfo_Value(take, "D_PLAYRATE") : 1.0;
+        double maxSourceTime = itemLen * playrate;
 
         auto view = reader.samps(0);
         std::vector<double> sliceTimes;
@@ -74,11 +84,15 @@ private:
 
         // Collect all slice points and convert from samples to seconds
         for (fluid::index i = 0; i < view.size(); i++) {
-            if (view(i) > 0) {
+            if (view(i) >= 0) {
                 double timeInSeconds =
                     static_cast<double>(view(i)) / sampleRate;
-                if (timeInSeconds < itemLen)
-                    sliceTimes.push_back(timeInSeconds);
+                if (timeInSeconds < maxSourceTime) {
+                    // Convert source time relative to start of buffer to
+                    // project time relative to item start
+                    double projectTimeRelative = timeInSeconds / playrate;
+                    sliceTimes.push_back(projectTimeRelative);
+                }
             }
         }
 
