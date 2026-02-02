@@ -4,7 +4,7 @@
 
 class NoveltyFeatureAlgorithm
     : public FlucomaAlgorithm<fluid::client::NRTThreadedNoveltyFeatureClient> {
-  public:
+public:
     enum Params {
         kKernelSize = 0,
         kFilterSize,
@@ -24,14 +24,14 @@ class NoveltyFeatureAlgorithm
         kNumAlgorithmOptions
     };
 
-    NoveltyFeatureAlgorithm(ReacomaExtension *apiProvider);
+    NoveltyFeatureAlgorithm(IParameterProvider *apiProvider);
     ~NoveltyFeatureAlgorithm() override;
 
     const char *GetName() const override;
     void RegisterParameters() override;
     int GetNumAlgorithmParams() const override;
 
-  protected:
+protected:
     bool DoProcess(InputBufferT::type &sourceBuffer, int numChannels,
                    int frameCount, int sampleRate) override;
     bool HandleResults(MediaItem *item, MediaItem_Take *take, int numChannels,

@@ -14,7 +14,7 @@ public:
         kNumParams
     };
 
-    NMFAlgorithm(ReacomaExtension *apiProvider);
+    NMFAlgorithm(IParameterProvider *apiProvider);
     ~NMFAlgorithm() override;
 
     const char *GetName() const override;

@@ -26,7 +26,7 @@ public:
         kNumAlgorithmOptions
     };
 
-    NoveltySliceAlgorithm(ReacomaExtension *apiProvider);
+    NoveltySliceAlgorithm(IParameterProvider *apiProvider);
     ~NoveltySliceAlgorithm() override;
 
     const char *GetName() const override;

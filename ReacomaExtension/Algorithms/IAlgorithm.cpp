@@ -1,7 +1,7 @@
 #include "IAlgorithm.h"
-#include "ReacomaExtension.h"
+#include "IParameterProvider.h"
 
-IAlgorithm::IAlgorithm(ReacomaExtension *apiProvider)
+IAlgorithm::IAlgorithm(IParameterProvider *apiProvider)
     : mApiProvider(apiProvider) {}
 
 IAlgorithm::~IAlgorithm() = default;
@@ -11,7 +11,10 @@ void IAlgorithm::SyncParameters() {
     if (mParamValues.size() < numParams)
         InitParamValues(numParams);
 
-    for (int i = 0; i < numParams; ++i) {
-        SetParamValue(i, mApiProvider->GetParam(GetGlobalParamIdx(i))->Value());
+    if (mApiProvider) {
+        for (int i = 0; i < numParams; ++i) {
+            SetParamValue(
+                i, mApiProvider->GetParameterValue(GetGlobalParamIdx(i)));
+        }
     }
 }

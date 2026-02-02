@@ -4,7 +4,7 @@
 #include "IAlgorithm.h"
 
 class MediaItem;
-class ReacomaExtension;
+class IParameterProvider;
 
 class ProcessingJob {
 public:

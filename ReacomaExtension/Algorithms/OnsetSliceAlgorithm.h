@@ -17,7 +17,7 @@ public:
         kNumParams
     };
 
-    OnsetSliceAlgorithm(ReacomaExtension *apiProvider);
+    OnsetSliceAlgorithm(IParameterProvider *apiProvider);
     ~OnsetSliceAlgorithm() override;
 
     const char *GetName() const override;

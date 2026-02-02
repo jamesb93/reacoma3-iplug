@@ -20,7 +20,7 @@ public:
         kNumParams
     };
 
-    AmpGateAlgorithm(ReacomaExtension *apiProvider);
+    AmpGateAlgorithm(IParameterProvider *apiProvider);
     ~AmpGateAlgorithm() override;
 
     const char *GetName() const override;

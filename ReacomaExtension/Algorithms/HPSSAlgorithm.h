@@ -14,7 +14,7 @@ public:
         kNumParams
     };
 
-    HPSSAlgorithm(ReacomaExtension *apiProvider);
+    HPSSAlgorithm(IParameterProvider *apiProvider);
     ~HPSSAlgorithm() override;
 
     const char *GetName() const override;

@@ -4,7 +4,7 @@
 #include <vector>
 
 class MediaItem;
-class ReacomaExtension;
+class IParameterProvider;
 
 enum class ProcessingMode { Markers, Regions, Segment, ProcessAudio };
 
@@ -21,7 +21,7 @@ struct ParameterDescriptor {
 
 class IAlgorithm {
 public:
-    IAlgorithm(ReacomaExtension *apiProvider);
+    IAlgorithm(IParameterProvider *apiProvider);
     virtual ~IAlgorithm();
 
     virtual bool StartProcessItemAsync(MediaItem *item) = 0;
@@ -67,7 +67,7 @@ public:
     virtual std::unique_ptr<IAlgorithm> CreateNew() const = 0;
 
 protected:
-    ReacomaExtension *mApiProvider;
+    IParameterProvider *mApiProvider;
     int mBaseParamIdx = 0;
     std::vector<double> mParamValues;
     ProcessingMode mProcessingMode = ProcessingMode::Markers;

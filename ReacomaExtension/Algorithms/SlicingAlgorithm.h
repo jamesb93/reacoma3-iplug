@@ -1,12 +1,11 @@
 #pragma once
 
 #include "FlucomaAlgorithmBase.h"
-#include "ReacomaExtension.h"
 
 template <typename ClientType>
 class SlicingAlgorithm : public FlucomaAlgorithm<ClientType> {
 public:
-    SlicingAlgorithm(ReacomaExtension *apiProvider)
+    SlicingAlgorithm(IParameterProvider *apiProvider)
         : FlucomaAlgorithm<ClientType>(apiProvider) {}
 
 protected:

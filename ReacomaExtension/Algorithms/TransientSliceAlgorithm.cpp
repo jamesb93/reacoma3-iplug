@@ -1,8 +1,7 @@
 #include "TransientSliceAlgorithm.h"
-#include "IPlugParameter.h"
-#include "ReacomaExtension.h"
 
-TransientSliceAlgorithm::TransientSliceAlgorithm(ReacomaExtension *apiProvider)
+TransientSliceAlgorithm::TransientSliceAlgorithm(
+    IParameterProvider *apiProvider)
     : FlucomaAlgorithm<NRTThreadedTransientSliceClient>(apiProvider) {}
 
 TransientSliceAlgorithm::~TransientSliceAlgorithm() = default;

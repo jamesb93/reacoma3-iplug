@@ -18,7 +18,7 @@ public:
         kNumParams
     };
 
-    AmpSliceAlgorithm(ReacomaExtension *apiProvider);
+    AmpSliceAlgorithm(IParameterProvider *apiProvider);
     ~AmpSliceAlgorithm() override;
 
     const char *GetName() const override;

@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "Algorithms/IAlgorithm.h"
+#include "Algorithms/IParameterProvider.h"
 #include "JobManager.h"
 
 namespace iplug {
@@ -35,7 +36,7 @@ class ProcessingJob;
 using namespace iplug;
 using namespace igraphics;
 
-class ReacomaExtension : public ReaperExtBase {
+class ReacomaExtension : public ReaperExtBase, public IParameterProvider {
 
 public:
     enum EParams { kParamAlgorithmChoice = 0, kNumOwnParams };
@@ -61,6 +62,10 @@ public:
     void ResetUIState();
     void SetAlgorithmChoice(EAlgorithmChoice choice, bool triggerUIRelayout);
     void UpdateAutoProcessButtonState();
+
+    double GetParameterValue(int globalIdx) const override {
+        return GetParam(globalIdx)->Value();
+    }
 
 private:
     bool mUIRelayoutIsNeeded = false;

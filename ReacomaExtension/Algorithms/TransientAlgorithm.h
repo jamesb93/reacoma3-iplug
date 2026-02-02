@@ -17,7 +17,7 @@ public:
         kNumParams
     };
 
-    TransientAlgorithm(ReacomaExtension *apiProvider);
+    TransientAlgorithm(IParameterProvider *apiProvider);
     ~TransientAlgorithm() override;
 
     const char *GetName() const override;

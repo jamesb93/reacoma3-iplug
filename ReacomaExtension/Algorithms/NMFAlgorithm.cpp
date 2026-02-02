@@ -1,8 +1,6 @@
 #include "NMFAlgorithm.h"
-#include "IPlugParameter.h"
-#include "ReacomaExtension.h"
 
-NMFAlgorithm::NMFAlgorithm(ReacomaExtension *apiProvider)
+NMFAlgorithm::NMFAlgorithm(IParameterProvider *apiProvider)
     : AudioOutputAlgorithm<NRTThreadedNMFClient>(apiProvider) {}
 
 NMFAlgorithm::~NMFAlgorithm() = default;

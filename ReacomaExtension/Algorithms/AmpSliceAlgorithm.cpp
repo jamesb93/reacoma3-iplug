@@ -1,10 +1,8 @@
 #include "AmpSliceAlgorithm.h"
-#include "IPlugParameter.h"
-#include "ReacomaExtension.h"
 #include "flucoma/clients/common/ParameterTypes.hpp"
 #include "flucoma/clients/rt/AmpSliceClient.hpp"
 
-AmpSliceAlgorithm::AmpSliceAlgorithm(ReacomaExtension *apiProvider)
+AmpSliceAlgorithm::AmpSliceAlgorithm(IParameterProvider *apiProvider)
     : SlicingAlgorithm<NRTThreadedAmpSliceClient>(apiProvider) {}
 
 AmpSliceAlgorithm::~AmpSliceAlgorithm() = default;

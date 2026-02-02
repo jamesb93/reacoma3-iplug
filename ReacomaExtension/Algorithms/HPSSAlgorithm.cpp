@@ -1,8 +1,6 @@
 #include "HPSSAlgorithm.h"
-#include "IPlugParameter.h"
-#include "ReacomaExtension.h"
 
-HPSSAlgorithm::HPSSAlgorithm(ReacomaExtension *apiProvider)
+HPSSAlgorithm::HPSSAlgorithm(IParameterProvider *apiProvider)
     : AudioOutputAlgorithm<NRTThreadedHPSSClient>(apiProvider) {}
 
 HPSSAlgorithm::~HPSSAlgorithm() = default;

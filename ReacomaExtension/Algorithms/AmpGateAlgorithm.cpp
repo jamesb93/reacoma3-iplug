@@ -1,8 +1,6 @@
 #include "AmpGateAlgorithm.h"
-#include "IPlugParameter.h"
-#include "ReacomaExtension.h"
 
-AmpGateAlgorithm::AmpGateAlgorithm(ReacomaExtension *apiProvider)
+AmpGateAlgorithm::AmpGateAlgorithm(IParameterProvider *apiProvider)
     : FlucomaAlgorithm<NRTThreadedAmpGateClient>(apiProvider) {}
 
 AmpGateAlgorithm::~AmpGateAlgorithm() = default;

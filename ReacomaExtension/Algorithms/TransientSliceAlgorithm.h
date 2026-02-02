@@ -18,7 +18,7 @@ public:
         kNumParams
     };
 
-    TransientSliceAlgorithm(ReacomaExtension *apiProvider);
+    TransientSliceAlgorithm(IParameterProvider *apiProvider);
     ~TransientSliceAlgorithm() override;
 
     const char *GetName() const override;

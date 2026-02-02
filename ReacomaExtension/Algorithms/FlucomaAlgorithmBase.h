@@ -21,11 +21,11 @@ extern double (*GetTakeMarker)(MediaItem_Take *take, int idx, char *nameOut,
 using namespace fluid;
 using namespace client;
 
-class ReacomaExtension;
+class IParameterProvider;
 
 template <typename ClientType> class FlucomaAlgorithm : public IAlgorithm {
 public:
-    FlucomaAlgorithm(ReacomaExtension *apiProvider)
+    FlucomaAlgorithm(IParameterProvider *apiProvider)
         : IAlgorithm(apiProvider), mContext{},
           mParams{ClientType::getParameterDescriptors(),
                   FluidDefaultAllocator()},
@@ -215,7 +215,7 @@ class AudioOutputAlgorithm : public FlucomaAlgorithm<ClientType> {
 protected:
     using FlucomaAlgorithm<ClientType>::mApiProvider;
 
-    AudioOutputAlgorithm(ReacomaExtension *apiProvider)
+    AudioOutputAlgorithm(IParameterProvider *apiProvider)
         : FlucomaAlgorithm<ClientType>(apiProvider) {}
 
     void AddOutputToTake(MediaItem *item, BufferT::type output, int sampleRate,

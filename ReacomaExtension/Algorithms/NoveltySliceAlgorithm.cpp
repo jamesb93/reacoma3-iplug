@@ -1,8 +1,6 @@
 #include "NoveltySliceAlgorithm.h"
-#include "IPlugParameter.h"
-#include "ReacomaExtension.h"
 
-NoveltySliceAlgorithm::NoveltySliceAlgorithm(ReacomaExtension *apiProvider)
+NoveltySliceAlgorithm::NoveltySliceAlgorithm(IParameterProvider *apiProvider)
     : SlicingAlgorithm<NRTThreadingNoveltySliceClient>(apiProvider) {}
 
 NoveltySliceAlgorithm::~NoveltySliceAlgorithm() = default;

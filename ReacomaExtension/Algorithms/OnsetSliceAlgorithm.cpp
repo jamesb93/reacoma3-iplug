@@ -1,8 +1,6 @@
 #include "OnsetSliceAlgorithm.h"
-#include "IPlugParameter.h"
-#include "ReacomaExtension.h"
 
-OnsetSliceAlgorithm::OnsetSliceAlgorithm(ReacomaExtension *apiProvider)
+OnsetSliceAlgorithm::OnsetSliceAlgorithm(IParameterProvider *apiProvider)
     : FlucomaAlgorithm<NRTThreadingOnsetSliceClient>(apiProvider) {}
 
 OnsetSliceAlgorithm::~OnsetSliceAlgorithm() = default;

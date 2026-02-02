@@ -1,8 +1,6 @@
 #include "TransientAlgorithm.h"
-#include "IPlugParameter.h"
-#include "ReacomaExtension.h"
 
-TransientAlgorithm::TransientAlgorithm(ReacomaExtension *apiProvider)
+TransientAlgorithm::TransientAlgorithm(IParameterProvider *apiProvider)
     : AudioOutputAlgorithm<NRTThreadedTransientsClient>(apiProvider) {}
 
 TransientAlgorithm::~TransientAlgorithm() = default;
