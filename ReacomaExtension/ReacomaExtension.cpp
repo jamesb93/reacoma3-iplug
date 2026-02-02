@@ -331,8 +331,14 @@ void ReacomaExtension::SetupActionButtons(IGraphics *pGraphics,
         for (int i = 0; i < numActionButtons; ++i) {
             const auto &buttonInfo = buttonsToCreate[i];
             IRECT b =
-                actionButtonRowBounds.GetGridCell(0, i, 1, numActionButtons)
-                    .GetHPadded(-theme.padding);
+                actionButtonRowBounds.GetGridCell(0, i, 1, numActionButtons);
+
+            // Apply the same padding logic as the bottom row
+            if (i > 0)
+                b.L += theme.padding * 2.5f;
+            if (i < numActionButtons - 1)
+                b.R -= theme.padding * 2.5f;
+
             pGraphics->AttachControl(new iplug::igraphics::ReacomaButton(
                 b, buttonInfo.label, buttonInfo.function, theme));
         }
@@ -343,12 +349,12 @@ void ReacomaExtension::SetupFooterControls(IGraphics *pGraphics,
                                            const IRECT &bottomUtilityRowBounds,
                                            const ReacomaTheme &theme) {
 
-    IRECT paddedBottomRow = bottomUtilityRowBounds.GetHPadded(-theme.padding);
+    IRECT paddedBottomRow = bottomUtilityRowBounds;
 
     IRECT autoProcessBounds =
         paddedBottomRow.GetFromLeft(theme.autoProcessControlWidth);
     IRECT cancelBounds = paddedBottomRow.GetFromRight(theme.cancelButtonWidth);
-    IRECT progressBounds = paddedBottomRow; // Start with the full padded width
+    IRECT progressBounds = paddedBottomRow;
     progressBounds.L = autoProcessBounds.R + theme.padding * 5;
     progressBounds.R = cancelBounds.L - theme.padding * 5;
 
